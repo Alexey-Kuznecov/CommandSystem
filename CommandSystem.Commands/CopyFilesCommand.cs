@@ -1,0 +1,61 @@
+﻿
+using CommandSystem.Console.Core;
+using CommandSystem.Console.Integration;
+using Microsoft.Extensions.DependencyInjection;
+using UnityCommander.Copying;
+using UnityCommander.Copying.Core;
+using UnityCommander.Copying.Filtering;
+using UnityCommander.Copying.Settings;
+
+namespace CommandSystem.Commands
+{
+    [ConsoleCommand("copyfiles", "Копирует файл в указанное место.\n" +
+                     "Пример использования:\n" +
+                     "copyfile <sourcePath> <destinationPath> [--overwrite] [--rename]\n\n" +
+                     "Аргументы:\n" +
+                     "<sourcePath>       Путь к исходному файлу.\n" +
+                     "<destinationPath>  Путь назначения (файл или папка).\n" +
+                     "--overwrite        Перезаписать файл, если он уже существует.\n" +
+                     "--rename           Если файл существует, сохранить копию с новым именем.", "cpfile", "cf")]
+    public class CopyFilesCommand : IConsoleCommand
+    {
+        public string Name => "copyfiles";
+        public string Description => "Копирует файлы из источника в назначение с поддержкой фильтров и прогресс-бара.";
+        public IEnumerable<string> Aliases => ["cpfile", "cf"];
+        private readonly CopyManager _copyManager;
+        private readonly CopyOptions _copyOptions;
+
+        public CopyFilesCommand(IServiceProvider serviceProvider)
+        {
+            _copyManager = serviceProvider.GetRequiredService<CopyManager>();
+            _copyOptions = serviceProvider.GetRequiredService<CopyOptions>();
+
+            IFileFilter filter = new CompositeFileFilter(new List<IFileFilter>
+            {
+                //new MaskFileFilter("*.cs"),  // Пример фильтра по маске, можно передавать через аргументы
+                //new RegexFileFilter(@"^\w+\.txt$")  // Пример фильтра по регулярному выражению
+            });
+
+            // Подготовка опций копирования
+            _copyOptions.FileFilter = filter;
+            _copyOptions.UseMultiThreading = true;  // Можно передавать через аргументы, например, --multithread
+            _copyOptions.IsRecursive = true;
+            _copyOptions.AllowEmptyDirectories = true;
+        }
+
+        public async Task ExecuteAsync(IConsoleCommandContext context, CancellationToken cancellationToken)
+        {
+            var args = context.Arguments;
+            if (args.Length < 2)
+            {
+                context.Output.WriteLine("Ошибка: Укажите путь источника и путь назначения.");
+                return;
+            }
+
+            var sourceDirectory = args[0];
+            var destinationDirectory = args[1];
+
+            await _copyManager.CopyFilesAsync(sourceDirectory, destinationDirectory, _copyOptions, cancellationToken);
+        }
+    }
+}

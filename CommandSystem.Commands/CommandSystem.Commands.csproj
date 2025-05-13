@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="xcopy &quot;$(TargetDir)$(TargetFileName)&quot; &quot;$(SolutionDir)CommandSystem.CLI\bin\Debug\net8.0\cmd\&quot; /Y /I /E" />
+	</Target>
+	<ItemGroup>
+	  <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.4" />
+	  <PackageReference Include="System.Security.Permissions" Version="9.0.4" />
+	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\UC.Native\UnityCommander.Native.csproj" />
+    <ProjectReference Include="..\CommandSystem.Console\CommandSystem.Console.csproj" />
+    <ProjectReference Include="..\UnityCommander.Copying\UnityCommander.Copying.csproj" />
+  </ItemGroup>
+
+</Project>
