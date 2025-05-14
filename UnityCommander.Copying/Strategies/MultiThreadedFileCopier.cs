@@ -3,7 +3,7 @@ using UnityCommander.Copying.Core;
 
 namespace UnityCommander.Copying.Strategies
 {
-    public class MultiThreadedFileCopier : IFileCopier
+    public class MultiThreadedFileCopier //: IFileCopier
     {
         public async Task CopyFileAsync(string sourcePath, string destinationPath, CancellationToken cancellationToken)
         {

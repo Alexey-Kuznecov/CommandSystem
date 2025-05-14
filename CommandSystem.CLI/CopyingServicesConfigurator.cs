@@ -16,10 +16,10 @@ namespace CommandSystem.CLI
     {
         public static IServiceCollection AddCopying(this IServiceCollection services)
         {
-            services.AddSingleton<IProgressTracker, ProgressTracker>();
-            services.AddSingleton<IFileCopier, AsyncFileCopier>();
+            services.AddTransient<IProgressTracker, ProgressTracker>();
+            services.AddSingleton<IFileCopier, StreamFileCopier>();
             services.AddSingleton<ILogger, FileLogger>();
-            services.AddSingleton<IProgressReporter, ConsoleProgressReporter>();
+            services.AddTransient<IProgressReporter, ConsoleProgressReporter>();
             services.AddSingleton<ICopyErrorHandler, LoggerCopyErrorHandler>();
             services.AddSingleton<ICopySuccessHandler, GuiCopySuccessHandler>();
             services.AddSingleton<IFileCopyPlanner, DefaultFileCopyPlanner>();
@@ -33,7 +33,7 @@ namespace CommandSystem.CLI
             //// Применяем настройки
             //settings.Apply(ref options);
             services.AddSingleton<CopyOptions>();
-            services.AddSingleton<CopyManager>();
+            services.AddTransient<CopyManager>();
 
             return services;
         }

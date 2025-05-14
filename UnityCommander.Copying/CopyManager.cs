@@ -1,8 +1,9 @@
 ﻿
+using AlexeyKuznetsov.Logger;
 using System.Diagnostics;
-using System.IO;
 using UnityCommander.Copying.Core;
 using UnityCommander.Copying.Handler;
+using UnityCommander.Copying.Helper;
 using UnityCommander.Copying.Progress;
 using UnityCommander.Copying.Reporting;
 using UnityCommander.Copying.Settings;
@@ -17,6 +18,8 @@ namespace UnityCommander.Copying
         private readonly IProgressReporter _progressReporter;
         private readonly ICopyErrorHandler _errorHandler;
         private readonly ICopySuccessHandler _successHandler;
+        private readonly ICopyMetricsCollector _metrics;
+        private SerilogCopyLogger _logger;
 
         public CopyManager(
             IFileCopier fileCopier,
@@ -24,7 +27,8 @@ namespace UnityCommander.Copying
             IProgressTracker progressTracker,
             IProgressReporter progressReporter,
             ICopyErrorHandler errorHandler,
-            ICopySuccessHandler successHandler)
+            ICopySuccessHandler successHandler,
+            ICopyMetricsCollector? metrics = null)
         {
             _fileCopier = fileCopier;
             _fileCopyPlanner = fileCopyPlanner;
@@ -32,64 +36,63 @@ namespace UnityCommander.Copying
             _progressReporter = progressReporter;
             _errorHandler = errorHandler;
             _successHandler = successHandler;
+            _logger = new SerilogCopyLogger();
+            _metrics = metrics ?? new NullCopyMetricsCollector(); // <= безопасно
         }
 
         public async Task CopyFilesAsync(string sourceDirectory, string destinationDirectory, CopyOptions options, CancellationToken cancellationToken)
         {
-            // Стартуем трекинг прогресса
-            _progressTracker.Start(0, 0); // Изначально прогресс 0
-
-            var plannedFiles = await _fileCopyPlanner.GetFilesToCopyAsync(sourceDirectory, destinationDirectory, options, cancellationToken);
-
-            // Если нет файлов, ничего не копируем
-            if (!plannedFiles.Any())
-            {
+            //_progressTracker.Start(0, 0);
+            var plannedItems = await _fileCopyPlanner.GetDiscoveredItems(sourceDirectory, destinationDirectory, options, cancellationToken);
+            var folderTracker = new FolderSizeTracker(sourceDirectory);
+            if (!plannedItems.Any())
                 return;
+
+            var files = plannedItems.OnlyFiles();
+            var dirs = plannedItems.OnlyDirectories();
+
+            // ← ТОЛЬКО ОДИН раз вызываем Start с корректными данными
+            _progressTracker.Start(files.Sum(f => new FileInfo(f.Source).Length), files.Count());
+            foreach (var dir in dirs)
+            {
+                if (Directory.Exists(dir.Source) && !Directory.Exists(dir.Destination))
+                    Directory.CreateDirectory(dir.Destination);
             }
 
-            // Обновляем прогресс
-            _progressTracker.Start(plannedFiles.Sum(p => new FileInfo(p.Source).Length), plannedFiles.Count());
+            int fileIndex = 0; // Logger
 
-            var tasks = plannedFiles
+            var tasks = files
                 .Select(async file =>
                 {
                     try
                     {
                         var source = file.Source;
-                        file.Destination = file.Source.Replace(sourceDirectory, destinationDirectory);
 
-                        if (Directory.Exists(file.Source))
-                        {
-                            // Это папка — создаём такую же в целевой директории
-                            if (!Directory.Exists(file.Destination))
-                                Directory.CreateDirectory(file.Destination);
-                        }
-                        else if (File.Exists(file.Source))
-                        {
-                            // Это файл — создаём директорию, в которую он будет скопирован
-                            if (!File.Exists(file.Destination))
-                                Directory.CreateDirectory(Path.GetDirectoryName(file.Destination));
-                        }
+                        fileIndex++; // Logger
+                        var sw = Stopwatch.StartNew(); // Logger
+                        _logger.LogCopyStarted(source, file.Destination); // Logger
+                        await _fileCopier.CopyFileAsync(source, file.Destination,
+                        bytesCopied => _progressTracker.UpdateProgress(bytesCopied), cancellationToken);
+                        sw.Stop(); // Logger
 
-                        var stopwatch = Stopwatch.StartNew();
-                        await _fileCopier.CopyFileAsync(file.Source, file.Destination, cancellationToken);
-                        stopwatch.Stop();
+                        var fileInfo = new FileInfo(source);
+                        _metrics.OnFileCopyCompleted(source, file.Destination, fileInfo.Length, sw.Elapsed);
 
-                        // Обновляем прогресс
-                        _progressTracker.ReportFileCopied(new FileInfo(file.Source).Length, 1);
+                        _logger.LogCopyCompleted(source, file.Destination, file.FileSize, sw.Elapsed, fileIndex); // Logger
+                        _progressTracker.CompleteFile(); // <-- только файл, байты уже учтены
                         _progressReporter.Report(_progressTracker.GetProgressInfo());
 
-                        // Логируем успех
-                        _successHandler.HandleSuccess(new FileCopySuccessContext(file.Source, file.Destination, new FileInfo(file.Source).Length, stopwatch.Elapsed));
+                        _successHandler.HandleSuccess(new FileCopySuccessContext(source, file.Destination, new FileInfo(file.Source).Length));
                     }
                     catch (Exception ex)
                     {
+
+                        _logger.LogCopyError(file.Source, file.Destination, ex); // Logger
                         var context = new FileCopyErrorContext(file.Source, file.Destination, ex);
                         _errorHandler.HandleError(context);
                     }
                 });
 
-            // В зависимости от настроек, копируем файлы с многозадачностью или последовательно
             if (options.UseMultiThreading)
             {
                 await Task.WhenAll(tasks);

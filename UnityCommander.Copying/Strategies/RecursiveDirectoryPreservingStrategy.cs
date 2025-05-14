@@ -1,22 +1,53 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityCommander.Copying.Settings;
+﻿
+using UnityCommander.Copying.Core;
 
 namespace UnityCommander.Copying.Strategies
 {
-    public class RecursiveDirectoryPreservingStrategy : IFileDiscoveryStrategy
+    public class RecursiveFullDiscoveryStrategy : IFileDiscoveryStrategy
     {
-        public IEnumerable<(string Source, string Destination)> DiscoverFiles(string sourcePath, string destinationRoot, CopyOptions options)
+        public IEnumerable<DiscoveredItem> Discover(string sourceRoot, string destinationRoot)
         {
-            var files = Directory.GetFiles(sourcePath, "*", options.IsRecursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
-            foreach (var file in files)
+            if (!Directory.Exists(sourceRoot))
+                yield break;
+
+            var stack = new Stack<string>();
+            stack.Push(sourceRoot);
+
+            while (stack.Count > 0)
             {
-                var relativePath = Path.GetRelativePath(sourcePath, file);
-                var destination = Path.Combine(destinationRoot, relativePath);
-                yield return (file, destination);
+                var currentSourcePath = stack.Pop();
+
+                // Добавляем директорию
+                var relativePath = Path.GetRelativePath(sourceRoot, currentSourcePath);
+                var destPath = Path.Combine(destinationRoot, relativePath);
+
+                yield return new DiscoveredItem
+                {
+                    Source = currentSourcePath,
+                    Destination = destPath,
+                    Type = DiscoveredItemType.Directory
+                };
+
+                // Получаем все поддиректории
+                foreach (var dir in Directory.GetDirectories(currentSourcePath))
+                {
+                    stack.Push(dir); // Погружаемся в глубину
+                }
+
+                // Получаем все файлы в текущей директории
+                foreach (var file in Directory.GetFiles(currentSourcePath))
+                {
+                    var relPath = Path.GetRelativePath(sourceRoot, file);
+                    var destFilePath = Path.Combine(destinationRoot, relPath);
+                    var fileInfo = new FileInfo(file);
+                    yield return new DiscoveredItem
+                    {
+                        Source = file,
+                        Destination = destFilePath,
+                        FileSize = fileInfo.Length,   
+                        Type = DiscoveredItemType.File
+                    };
+                }
             }
         }
     }

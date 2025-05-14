@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace UnityCommander.Copying.Strategies
 {
-    public class FlatCopyStrategy : IFileDiscoveryStrategy
+    public class FlatCopyStrategy //: IFileDiscoveryStrategy
     {
         public IEnumerable<(string Source, string Destination)> DiscoverFiles(string sourcePath, string destinationRoot)
         {

@@ -11,14 +11,12 @@ namespace UnityCommander.Copying.Handler
         public string SourcePath { get; }
         public string DestinationPath { get; }
         public long FileSize { get; }
-        public TimeSpan Duration { get; }
 
-        public FileCopySuccessContext(string source, string destination, long fileSize, TimeSpan duration)
+        public FileCopySuccessContext(string source, string destination, long fileSize)
         {
             SourcePath = source;
             DestinationPath = destination;
             FileSize = fileSize;
-            Duration = duration;
         }
     }
 }

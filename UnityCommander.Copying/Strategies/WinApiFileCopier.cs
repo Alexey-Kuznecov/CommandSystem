@@ -7,7 +7,7 @@ using UnityCommander.Copying.Core;
 
 namespace UnityCommander.Copying.Strategies
 {
-    public class WinApiFileCopier : IFileCopier
+    public class WinApiFileCopier //: IFileCopier
     {
         public async Task CopyFileAsync(string sourcePath, string destinationPath, CancellationToken cancellationToken)
         {

@@ -1,4 +1,5 @@
 ﻿
+using AlexeyKuznetsov.Helper;
 using CommandSystem.Console.Core;
 using UnityCommander.Copying.Core;
 
@@ -15,10 +16,19 @@ namespace UnityCommander.Copying.Reporting
 
         public void Report(ProgressInfo progressInfo)
         {
-            var progress = (int)(progressInfo.CompletionPercentage);
-            var progressBar = new string('#', progress / 5);
-            var remaining = new string('-', 20 - progress / 5);
-            _consoleOutput.Write($"\r[{progressBar}{remaining}] {progress}% ({progressInfo.FilesCopied}/{progressInfo.TotalFiles})");
+            int progress = (int)Math.Round(progressInfo.CompletionPercentage);
+            int barUnits = Math.Min(20, progress / 5);
+
+            var progressBar = new string('#', barUnits);
+            var remaining = new string('-', 20 - barUnits);
+
+            var formattedBytes = ConverterBytes.AutoConvertFormatBytes(progressInfo.BytesCopied);
+            _consoleOutput.Write($"\r[{progressBar}{remaining}] {progress,3}% ({progressInfo.FilesCopied}/{progressInfo.TotalFiles}), {formattedBytes.PadLeft(10)}");
+        }
+
+        private static string FormatSize(string sizeInMb)
+        {
+            return $"{sizeInMb:0.00} Mb".PadLeft(10);
         }
     }
 }

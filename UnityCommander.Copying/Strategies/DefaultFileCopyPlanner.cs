@@ -11,57 +11,41 @@ namespace UnityCommander.Copying.Strategies
 {
     public class DefaultFileCopyPlanner : IFileCopyPlanner
     {
-        public async Task<IEnumerable<(string Source, string Destination)>> GetFilesToCopyAsync(
+        public async Task<IEnumerable<DiscoveredItem>> GetDiscoveredItems(
             string sourceDirectory,
             string destinationDirectory,
             CopyOptions options,
             CancellationToken cancellationToken)
         {
-            //// Сбор всех файлов с учётом рекурсии
-            //var filesToCopy = Directory.GetFiles(sourceDirectory, "*", options.IsRecursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+            // Используем стратегию обнаружения файлов и директорий
+            var discoveryStrategy = options.DiscoveryStrategy ?? new RecursiveFullDiscoveryStrategy();
 
-            // Получаем все файлы, включая пустые папки
-            var filesToCopy = Directory.GetFiles(sourceDirectory, "*", options.IsRecursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)
-                                        .ToList();
+            // Получаем все найденные элементы (файлы и директории)
+            var discoveredItems = discoveryStrategy.Discover(sourceDirectory, destinationDirectory).ToList();
 
-            // Добавляем пустые папки, если нужно
-            if (options.AllowEmptyDirectories)
-                EnsureEmptyDirectoriesExist(filesToCopy, sourceDirectory, destinationDirectory);
+            var result = new List<DiscoveredItem>();
 
-            // Фильтрация файлов
-            if (options.FileFilter != null)
+            foreach (var item in discoveredItems)
             {
-                filesToCopy = filesToCopy.Where(file => options.FileFilter.ShouldCopy(file)).ToList();
-            }
+                cancellationToken.ThrowIfCancellationRequested();
 
-            // Возвращаем пути файлов с их назначением
-            return filesToCopy.Select(file => (file, Path.Combine(destinationDirectory, Path.GetFileName(file))));
-        }
-
-        public void EnsureEmptyDirectoriesExist(IEnumerable<string> files, string sourceDirectory, string destinationDirectory)
-        {
-            // Получаем все директории из исходных путей, включая пустые
-            var directories = files.Select(file => Path.GetDirectoryName(Path.Combine(sourceDirectory, Path.GetFileName(file))))
-                                   .Distinct();
-
-            // Добавляем все пустые директории из исходного пути
-            var emptyDirs = Directory.GetDirectories(sourceDirectory, "*", SearchOption.AllDirectories)
-                                     .Where(dir => !Directory.GetFiles(dir).Any() && !Directory.GetDirectories(dir).Any())
-                                     .Distinct();
-
-            // Объединяем директории, которые должны быть созданы
-            directories = directories.Concat(emptyDirs).Distinct();
-
-            // Создаём только пустые директории в целевом пути
-            foreach (var dir in directories)
-            {
-                var targetDir = Path.Combine(destinationDirectory, Path.GetRelativePath(sourceDirectory, dir));
-
-                if (!Directory.Exists(targetDir))
+                // Пропускаем файлы, не прошедшие фильтр (если фильтр задан)
+                if (item.Type == DiscoveredItemType.File && options.FileFilter != null)
                 {
-                    Directory.CreateDirectory(targetDir); // Создаём пустую папку, если её нет
+                    if (!options.FileFilter.ShouldCopy(item.Source))
+                        continue;
                 }
+
+                // Пропускаем директории, если выключена опция сохранения пустых папок
+                if (item.Type == DiscoveredItemType.Directory && !options.AllowEmptyDirectories)
+                {
+                    continue;
+                }
+
+                result.Add(item);
             }
+
+            return result;
         }
     }
 }

@@ -46,16 +46,52 @@ namespace CommandSystem.Commands
         public async Task ExecuteAsync(IConsoleCommandContext context, CancellationToken cancellationToken)
         {
             var args = context.Arguments;
-            if (args.Length < 2)
+            //if (args.Length < 2)
+            //{
+            //    context.Output.WriteLine("Ошибка: Укажите путь источника и путь назначения.");
+            //    return;
+            //}
+
+            var sourceDirectory = @"E:\Projects\03._Tests\CopyFileTest\Source" ?? args[0];
+            var destinationDirectory = @"E:\Projects\03._Tests\CopyFileTest\Target" ?? args[1];
+
+            if (string.IsNullOrWhiteSpace(sourceDirectory) || string.IsNullOrWhiteSpace(destinationDirectory))
             {
                 context.Output.WriteLine("Ошибка: Укажите путь источника и путь назначения.");
                 return;
             }
 
-            var sourceDirectory = args[0];
-            var destinationDirectory = args[1];
+            if (!Directory.EnumerateFileSystemEntries(sourceDirectory).Any())
+            {
+                context.Output.WriteLine($"Папка пуста нечего копировать {destinationDirectory}.");
+                return;
+            }
 
             await _copyManager.CopyFilesAsync(sourceDirectory, destinationDirectory, _copyOptions, cancellationToken);
+
+            if (args.Contains("-c"))
+            {
+                ClearDirectory(destinationDirectory);
+            }
+        }
+
+        public static void ClearDirectory(string path)
+        {
+            if (!Directory.Exists(path))
+                throw new DirectoryNotFoundException($"Папка не найдена: {path}");
+
+            // Удаляем все файлы
+            foreach (var file in Directory.GetFiles(path))
+            {
+                File.SetAttributes(file, FileAttributes.Normal); // на случай, если файл read-only
+                File.Delete(file);
+            }
+
+            // Удаляем все подкаталоги рекурсивно
+            foreach (var dir in Directory.GetDirectories(path))
+            {
+                Directory.Delete(dir, true);
+            }
         }
     }
 }

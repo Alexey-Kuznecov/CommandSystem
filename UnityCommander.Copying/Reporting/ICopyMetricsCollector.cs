@@ -1,0 +1,17 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace UnityCommander.Copying.Reporting
+{
+    public interface ICopyMetricsCollector
+    {
+        void OnFileCopyStarted(string source, string destination);
+        void OnFileCopyCompleted(string source, string destination, long sizeBytes, TimeSpan duration);
+        void OnError(string source, Exception ex);
+        void OnDirectoryCreated(string path);
+        void ReportFinal();
+    }
+}

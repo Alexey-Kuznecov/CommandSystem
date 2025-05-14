@@ -9,8 +9,7 @@ namespace UnityCommander.Copying.Core
 {
     public interface IFileCopyPlanner
     {
-        //IEnumerable<(string Source, string Destination)> BuildPlan(IEnumerable<string> inputPaths, string destinationRoot, CopyOptions options);
-        public Task<IEnumerable<(string Source, string Destination)>> GetFilesToCopyAsync(
+        public Task<IEnumerable<DiscoveredItem>> GetDiscoveredItems(
             string sourceDirectory,
             string destinationDirectory,
             CopyOptions options,

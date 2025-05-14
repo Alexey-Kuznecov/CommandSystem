@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityCommander.Copying.Filtering;
+using UnityCommander.Copying.Strategies;
 
 namespace UnityCommander.Copying.Settings
 {
@@ -18,5 +19,6 @@ namespace UnityCommander.Copying.Settings
         public bool OverwriteExistingFiles { get; set; }
         public bool PreserveTimestamps { get; set; }
         public int MaxConcurrentTasks { get; set; }
+        public IFileDiscoveryStrategy? DiscoveryStrategy { get; internal set; }
     }
 }
