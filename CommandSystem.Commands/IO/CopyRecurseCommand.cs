@@ -113,11 +113,6 @@ namespace CommandSystem.Commands.IO
             }
         }
 
-        public IEnumerable<string> GetSuggestions(string[] args)
-        {
-            throw new NotImplementedException();
-        }
-
         private async Task<long> CopyFileWithProgress(string sourcePath, string destinationPath, IConsoleCommandContext context, long bytesCopied, long totalBytes, CancellationToken cancellationToken)
         {
             var bufferSize = 1024 * 16; // 16 KB
@@ -182,6 +177,11 @@ namespace CommandSystem.Commands.IO
             } while (File.Exists(newPath));
 
             return newPath;
+        }
+
+        public Task FinalizeAsync()
+        {
+            return Task.CompletedTask;
         }
     }
 }

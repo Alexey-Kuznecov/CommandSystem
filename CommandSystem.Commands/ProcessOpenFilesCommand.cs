@@ -79,5 +79,10 @@ namespace CommandSystem.Commands
                 _output.WriteLine(file.FullName);
             }
         }
+
+        public Task FinalizeAsync()
+        {
+            return Task.CompletedTask;
+        }
     }
 }

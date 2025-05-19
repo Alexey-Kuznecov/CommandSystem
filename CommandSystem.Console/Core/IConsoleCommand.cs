@@ -10,5 +10,6 @@ namespace CommandSystem.Console.Core
         string Name { get; }
         string Description { get; }
         Task ExecuteAsync(IConsoleCommandContext context, CancellationToken cancellationToken);
+        Task FinalizeAsync();
     }
 }

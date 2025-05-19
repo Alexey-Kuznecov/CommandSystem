@@ -29,6 +29,7 @@ namespace UnityCommander.Copying.Strategies
             int bytesRead;
             while ((bytesRead = await sourceStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 await destinationStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
                 onBytesCopied?.Invoke(bytesRead); // ← обновляется прогресс
             }

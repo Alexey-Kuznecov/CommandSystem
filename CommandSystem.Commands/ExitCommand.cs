@@ -29,5 +29,10 @@ namespace CommandSystem.Commands
             }
             return Task.CompletedTask;
         }
+
+        public Task FinalizeAsync()
+        {
+            return Task.CompletedTask;
+        }
     }
 }

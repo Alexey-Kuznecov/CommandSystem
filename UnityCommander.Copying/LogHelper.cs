@@ -9,11 +9,11 @@ namespace UnityCommander.Copying
 {
     public class LogHelper
     {
-        public ILogger FileLogger { get; }
+        public ILogger Log { get; }
 
         public LogHelper()
         {
-            FileLogger = new FileLogger();
+            Log = new FileLogger();
         }
     }
 }

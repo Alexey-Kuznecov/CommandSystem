@@ -16,24 +16,19 @@ namespace CommandSystem.CLI
     {
         public static IServiceCollection AddCopying(this IServiceCollection services)
         {
-            services.AddTransient<IProgressTracker, ProgressTracker>();
+            //services.AddSingleton<IProgressCalculator>(new SmoothProgressCalculator(0.1));
+            services.AddSingleton<IProgressCalculator, ProgressCalculator>();
+            services.AddSingleton<ISpeedCalculator, SpeedCalculator>();
+            services.AddSingleton<IProgressTracker, ProgressTracker>();
             services.AddSingleton<IFileCopier, StreamFileCopier>();
             services.AddSingleton<ILogger, FileLogger>();
-            services.AddTransient<IProgressReporter, ConsoleProgressReporter>();
+            services.AddSingleton<IProgressReporter, ConsoleProgressReporter>();
             services.AddSingleton<ICopyErrorHandler, LoggerCopyErrorHandler>();
             services.AddSingleton<ICopySuccessHandler, GuiCopySuccessHandler>();
             services.AddSingleton<IFileCopyPlanner, DefaultFileCopyPlanner>();
-
-            //var settings = new CompositeCopySetting(new List<ICopySetting>
-            //{
-            //    new RecursiveCopySetting(),  // Пример настройки рекурсивного копирования
-            //    //new CopyAllToOneFolderSetting()  // Пример настройки копирования в одну папку
-            //});
-
-            //// Применяем настройки
-            //settings.Apply(ref options);
+            services.AddTransient<ICopyMetricsCollector, CopyMetricsCollector>();
             services.AddSingleton<CopyOptions>();
-            services.AddTransient<CopyManager>();
+            services.AddSingleton<CopyManager>();
 
             return services;
         }

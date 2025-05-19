@@ -16,5 +16,10 @@ namespace CommandSystem.Commands
             context.Output.Clear(); // Explicitly use System.Console to avoid ambiguity
             return Task.CompletedTask;
         }
+
+        public Task FinalizeAsync()
+        {
+            return Task.CompletedTask;
+        }
     }
 }

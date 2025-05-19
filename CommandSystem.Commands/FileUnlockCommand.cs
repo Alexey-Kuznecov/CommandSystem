@@ -53,5 +53,9 @@ namespace CommandSystem.Commands
                 _output.WriteError($"Ошибка при получении информации: {ex.Message}");
             }
         }
+        public Task FinalizeAsync()
+        {
+            return Task.CompletedTask;
+        }
     }
 }

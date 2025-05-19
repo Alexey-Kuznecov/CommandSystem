@@ -10,6 +10,7 @@
 	</Target>-->
   <ItemGroup>
     <ProjectReference Include="..\CommandSystem.Console\CommandSystem.Console.csproj" />
+    <ProjectReference Include="..\UnityCommander.SystemMetrics\UnityCommander.SystemMetrics.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="AlexeyKuznetsov">

@@ -24,11 +24,6 @@ namespace CommandSystem.Console.Integration
         public string Name => _metadata.Name;
         public string Description => _metadata.Description ?? string.Empty;
 
-        public void Execute(IConsoleCommandContext context)
-        {
-            throw new NotImplementedException("Use ExecuteAsync instead");
-        }
-
         public async Task ExecuteAsync(IConsoleCommandContext context, CancellationToken cancellationToken = default)
         {
             if (context == null)
@@ -40,9 +35,9 @@ namespace CommandSystem.Console.Integration
             await _metadata.Handler(context, cancellationToken);
         }
 
-        public IEnumerable<string> GetSuggestions(string[] args)
+        public Task FinalizeAsync()
         {
-            return Enumerable.Empty<string>();
+            return Task.CompletedTask;
         }
     }
 }

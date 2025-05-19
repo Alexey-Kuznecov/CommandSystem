@@ -18,5 +18,9 @@ namespace CommandSystem.Commands
             context.Output.Write(output);
             return Task.CompletedTask;
         }
+        public Task FinalizeAsync()
+        {
+            return Task.CompletedTask;
+        }
     }
 }

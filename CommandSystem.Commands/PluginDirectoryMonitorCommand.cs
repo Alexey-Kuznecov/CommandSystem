@@ -5,7 +5,7 @@ using CommandSystem.Console.Integration;
 namespace CommandSystem.Commands
 {
     [ConsoleCommand("dirwatch", "Мониторит изменения в указанной директории", "dw", "watcher")]
-    public class PluginDirectoryMonitorCommand : IConsoleCommand
+    public class PluginDirectoryMonitorCommand : IConsoleCommand, IDisposable
     {
         private IConsoleOutput _output = new ConsoleOutput();
         private DirectoryWatcher _directoryWatcher;
@@ -52,6 +52,11 @@ namespace CommandSystem.Commands
         public void Dispose()
         {
             _directoryWatcher?.Dispose();
+        }
+
+        public Task FinalizeAsync()
+        {
+            return Task.CompletedTask;
         }
     }
 }

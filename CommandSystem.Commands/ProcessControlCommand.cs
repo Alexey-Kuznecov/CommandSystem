@@ -95,5 +95,10 @@ namespace CommandSystem.Commands
                 output.WriteError($"Ошибка при выполнении действия: {ex.Message}");
             }
         }
+
+        public Task FinalizeAsync()
+        {
+            return Task.CompletedTask;
+        }
     }
 }

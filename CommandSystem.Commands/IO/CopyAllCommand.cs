@@ -158,5 +158,10 @@ namespace CommandSystem.Commands.IO
 
             return newPath;
         }
+
+        public Task FinalizeAsync()
+        {
+            return Task.CompletedTask;
+        }
     }
 }

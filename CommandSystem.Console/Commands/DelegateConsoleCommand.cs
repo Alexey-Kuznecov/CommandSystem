@@ -41,5 +41,10 @@ namespace CommandSystem.Console.Commands
         {
             throw new NotImplementedException();
         }
+
+        public Task FinalizeAsync()
+        {
+            return Task.CompletedTask;
+        }
     }
 }

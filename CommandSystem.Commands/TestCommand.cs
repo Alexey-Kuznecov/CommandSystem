@@ -25,5 +25,10 @@ namespace CommandSystem.Commands
             string shortened = PathFormatter.ShortenForLog(fullPath, anchor);
             output.WriteLine(shortened); // => ..\..\Output\log.txt
         }
+
+        public Task FinalizeAsync()
+        {
+            return Task.CompletedTask;
+        }
     }
 }

@@ -66,5 +66,10 @@ namespace CommandSystem.Commands
 
             return instanceNames.FirstOrDefault(name => name.EndsWith($"{letter.ToUpper()}:")) ?? "_Total";
         }
+
+        public Task FinalizeAsync()
+        {
+            return Task.CompletedTask;
+        }
     }
 }

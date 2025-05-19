@@ -57,5 +57,10 @@ namespace CommandSystem.Commands
 
             await Task.CompletedTask;
         }
+
+        public Task FinalizeAsync()
+        {
+            return Task.CompletedTask;
+        }
     }
 }

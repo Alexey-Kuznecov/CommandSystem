@@ -17,14 +17,14 @@ namespace CommandSystem.Commands
                      "<destinationPath>  Путь назначения (файл или папка).\n" +
                      "--overwrite        Перезаписать файл, если он уже существует.\n" +
                      "--rename           Если файл существует, сохранить копию с новым именем.", "cpfile", "cf")]
-    public class CopyFilesCommand : IConsoleCommand
+    public class CopyFilesCommand : IConsoleCommand, IDisposable
     {
         public string Name => "copyfiles";
         public string Description => "Копирует файлы из источника в назначение с поддержкой фильтров и прогресс-бара.";
         public IEnumerable<string> Aliases => ["cpfile", "cf"];
         private readonly CopyManager _copyManager;
         private readonly CopyOptions _copyOptions;
-
+        private IConsoleCommandContext _context;
         public CopyFilesCommand(IServiceProvider serviceProvider)
         {
             _copyManager = serviceProvider.GetRequiredService<CopyManager>();
@@ -45,33 +45,76 @@ namespace CommandSystem.Commands
 
         public async Task ExecuteAsync(IConsoleCommandContext context, CancellationToken cancellationToken)
         {
+            _context = context;
             var args = context.Arguments;
+            var output = context.Output;
             //if (args.Length < 2)
             //{
             //    context.Output.WriteLine("Ошибка: Укажите путь источника и путь назначения.");
             //    return;
             //}
 
-            var sourceDirectory = @"E:\Projects\03._Tests\CopyFileTest\Source" ?? args[0];
+            var sourceDirectory = @"E:\Projects\03._Tests\CopyFileTest\Source3" ?? args[0];
             var destinationDirectory = @"E:\Projects\03._Tests\CopyFileTest\Target" ?? args[1];
+            //var sourceDirectory = @"c:\TestCopy\Source" ?? args[0];
+            //var destinationDirectory = @"c:\TestCopy\Target" ?? args[1];
 
             if (string.IsNullOrWhiteSpace(sourceDirectory) || string.IsNullOrWhiteSpace(destinationDirectory))
             {
-                context.Output.WriteLine("Ошибка: Укажите путь источника и путь назначения.");
+                output.WriteLine("Ошибка: Укажите путь источника и путь назначения.");
                 return;
             }
 
             if (!Directory.EnumerateFileSystemEntries(sourceDirectory).Any())
             {
-                context.Output.WriteLine($"Папка пуста нечего копировать {destinationDirectory}.");
+                output.WriteLine($"Папка пуста нечего копировать {destinationDirectory}.");
                 return;
             }
 
-            await _copyManager.CopyFilesAsync(sourceDirectory, destinationDirectory, _copyOptions, cancellationToken);
-
-            if (args.Contains("-c"))
+            if (args.Contains("-t"))
             {
-                ClearDirectory(destinationDirectory);
+                try
+                {
+                    using var localCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    var localToken = localCts.Token;
+
+                    while (!localToken.IsCancellationRequested)
+                    {
+                        var copyTask = _copyManager.CopyFilesAsync(sourceDirectory, destinationDirectory, _copyOptions, localToken);
+
+                        try
+                        {
+                            await copyTask;
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            // Копирование отменено, выходим из цикла
+                            break;
+                        }
+
+                        ClearDirectory(destinationDirectory);
+                        await Task.Delay(100, cancellationToken);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    output.WriteLine("Операция отменена.");
+                }
+            }
+            else
+            {
+                try
+                {
+                    await _copyManager.CopyFilesAsync(sourceDirectory, destinationDirectory, _copyOptions, cancellationToken);
+                    if (args.Contains("-c"))
+                    {
+                        ClearDirectory(destinationDirectory);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    output.WriteLine("\n[CopyFilesCommand] Операция отменена.");
+                }
             }
         }
 
@@ -92,6 +135,17 @@ namespace CommandSystem.Commands
             {
                 Directory.Delete(dir, true);
             }
+        }
+        public Task FinalizeAsync()
+        {
+            return Task.CompletedTask;
+        }
+
+        public void Dispose()
+        {
+            var args = _context.Arguments;
+            if (args.Contains("-c") && args[1] != null)
+                ClearDirectory(args[1]);
         }
     }
 }

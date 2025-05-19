@@ -18,7 +18,8 @@ namespace UnityCommander.Copying.Settings
         public bool CopyAllToOneFolder { get; set; }
         public bool OverwriteExistingFiles { get; set; }
         public bool PreserveTimestamps { get; set; }
-        public int MaxConcurrentTasks { get; set; }
+        public int MaxConсurrentTasks { get; set; } = 5;
         public IFileDiscoveryStrategy? DiscoveryStrategy { get; internal set; }
+        public bool UseMetrics { get; set; }
     }
 }

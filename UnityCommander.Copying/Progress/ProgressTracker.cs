@@ -1,24 +1,29 @@
 ﻿
 using System;
+using System.Diagnostics;
 using UnityCommander.Copying.Core;
+using UnityCommander.SystemMetrics;
 
 namespace UnityCommander.Copying.Progress
 {
     public class ProgressTracker : IProgressTracker
     {
-        private LogHelper FileLogger;
+        private readonly IProgressCalculator _progressCalculator;
 
         private long _totalBytes;              // Общий объём данных для отслеживания
         private int _totalFiles;               // Общее количество файлов
         private long _bytesCopied;             // Сколько байт скопировано до текущего момента
         private int _filesCopied;              // Сколько файлов скопировано
         private ProgressInfo _progressInfo;    // Объект, содержащий информацию о прогрессе
+        private readonly ISpeedCalculator? _speedCalculator;
+        private Stopwatch? _elapsedTimePerFile; // Время, затраченное на копирование файла
+        private EstimatedTimeCalculator _timeCalculator;
 
-        public ProgressTracker()
+        public ProgressTracker(IProgressCalculator progressCalculator, ISpeedCalculator? speedCalculator = null)
         {
+            _progressCalculator = progressCalculator ?? new ProgressCalculator();
+            _speedCalculator = speedCalculator;
             _progressInfo = new ProgressInfo();
-            FileLogger = new LogHelper();
-            FileLogger.FileLogger.LogInfo("ProgressTracker создан " + GetHashCode());
         }
 
         // Начало отслеживания общего прогресса
@@ -32,40 +37,39 @@ namespace UnityCommander.Copying.Progress
             _filesCopied = 0;
             _progressInfo = new ProgressInfo();  // Обнуляем информацию о прогрессе
             _progressInfo.TotalFiles = totalFiles;  // Устанавливаем общее количество файлов
+            _speedCalculator?.Reset();
+            _timeCalculator = new EstimatedTimeCalculator(totalBytes);
         }
 
         // Начало отслеживания прогресса для конкретного файла
         public void StartFile(string sourcePath, long size)
         {
-            //FileLogger.FileLogger.LogInfo($"[StartFile] Начало копирования файла: {sourcePath}, размер = {size} байт");
-
+            _elapsedTimePerFile = Stopwatch.StartNew();
             _progressInfo.CurrentFile = sourcePath;
-            _progressInfo.TotalBytes = size;
-            _progressInfo.BytesCopied = 0;
         }
 
         // Обновление прогресса (вызывается при копировании каждого байта)
         public void UpdateProgress(long bytesCopied)
         {
-            //_bytesCopied += bytesCopied;
-            Interlocked.Add(ref _bytesCopied, bytesCopied);
+            long currentBytes = Interlocked.Add(ref _bytesCopied, bytesCopied);
             _progressInfo.BytesCopied = _bytesCopied;
 
-            // Прогресс по байтам
-            double bytePart = _totalBytes > 0 ? (double)_bytesCopied / _totalBytes : 0.0;
+            // === Скорость ===
+            if (_speedCalculator != null)
+            {
+                _speedCalculator.Update(currentBytes);
+                _progressInfo.SpeedBytesPerSecond = _speedCalculator.GetSpeedBytesPerSecond();
+            }
 
-            // Прогресс по количеству файлов
-            double filePart = _totalFiles > 0 ? (double)_filesCopied / _totalFiles : 0.0;
+            // === Подсчет времени ===
+            _timeCalculator?.Update(_bytesCopied);
+            var remaining = _timeCalculator?.GetEstimatedRemainingTime();
+            if (remaining.HasValue)
+                _progressInfo.EstimatedTimeRemaining = remaining.Value;
 
-            // Смешанный прогресс (вес: 80% байты, 20% файлы)
-            double combinedProgress = (bytePart * 0.8 + filePart * 0.2) * 100.0;
-
-            // Гарантируем максимум 100
-            if (combinedProgress > 100.0)
-                combinedProgress = 100.0;
-
-            _progressInfo.CompletionPercentage = combinedProgress;
-
+            // === Прогресс ===
+            _progressInfo.CompletionPercentage = _progressCalculator.Calculate(_totalBytes, _bytesCopied);
+           
             _progressInfo.FilesCopied = _filesCopied;
             _progressInfo.TotalFiles = _totalFiles;
 
@@ -79,17 +83,15 @@ namespace UnityCommander.Copying.Progress
         // Завершение отслеживания для конкретного файла
         public void CompleteFile()
         {
+            _elapsedTimePerFile?.Stop();
             Interlocked.Increment(ref _filesCopied);
             _progressInfo.FilesCopied = _filesCopied;
-            //FileLogger.FileLogger.LogInfo($"[CompleteFile] Файл завершён. Скопировано файлов: {_filesCopied} / {_totalFiles}");
-
+            _progressInfo.ElapsedTime = _elapsedTimePerFile?.Elapsed ?? TimeSpan.Zero;
         }
 
         // Получение текущей информации о прогрессе
         public ProgressInfo GetProgressInfo()
         {
-            //FileLogger.FileLogger.LogInfo($"[GetProgressInfo] Получение прогресса: {_progressInfo.CompletionPercentage:F2}%, файлы: {_filesCopied}/{_totalFiles}, байты: {_bytesCopied}/{_totalBytes}");
-
             return _progressInfo;
         }
     }

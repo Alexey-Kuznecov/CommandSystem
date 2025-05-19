@@ -1,6 +1,7 @@
 ﻿using CommandSystem.Console.Core;
 using CommandSystem.Console.Integration.CommandSystem.Console.Integration;
 using CommandSystem.Core.Metadata;
+using CommandSystem.Infrastructure.Lifecycle;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,14 +41,26 @@ namespace CommandSystem.Console.Integration
         // Выполняет команду
         public async Task ExecuteCommandAsync(string commandName, IConsoleCommandContext context, CancellationToken cancellationToken = default)
         {
-            var command = _registry.Find(commandName);
-
-            if (command == null)
+            var output = context.Output;
+            try
             {
-                throw new InvalidOperationException($"Command '{commandName}' not found.");
-            }
+                var command = _registry.Find(commandName);
 
-            await _invoker.InvokeAsync(commandName, context, cancellationToken);
+                if (command == null)
+                {
+                    throw new InvalidOperationException($"Command '{commandName}' not found.");
+                }
+
+                await _invoker.InvokeAsync(commandName, context, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                output.WriteLine("Команда отменена.");
+            }
+            catch (InvalidOperationException)
+            {
+                output.WriteError($"Команда '{commandName}' не найдена.");
+            }
         }
 
         public void RegisterDelegateCommand(
@@ -58,6 +71,36 @@ namespace CommandSystem.Console.Integration
         {
             var metadata = new ConsoleCommandMetadata(new CommandMetadata(name, description), handler, aliases?.ToList());
             RegisterCommand(metadata);
+        }
+
+        public async Task FinalizeAllCommandsAsync()
+        {
+            foreach (var cmd in _registry.GetAllCommands())
+            {
+                if (cmd is IAsyncDisposable asyncDisposable)
+                {
+                    await asyncDisposable.DisposeAsync();
+                }
+                else if (cmd is IDisposableCommand disposable)
+                {
+                    disposable.Dispose();
+                }
+                else if (cmd is IConsoleCommand cmdWithFinalize)
+                {
+                    await cmdWithFinalize.FinalizeAsync();
+                }
+            }
+        }
+
+        public void FinalizeAllCommands()
+        {
+            foreach (var cmd in _registry.GetAllCommands())
+            {
+                if (cmd is IDisposableCommand disposable)
+                {
+                    disposable.Dispose();
+                }
+            }
         }
     }
 }

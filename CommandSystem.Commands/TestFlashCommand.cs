@@ -38,5 +38,10 @@ namespace CommandSystem.Commands
 
              output.WriteLine($"Средняя скорость: {result.Result.AverageSpeedMbPerSec} MB/s");
         }
+
+        public Task FinalizeAsync()
+        {
+            return Task.CompletedTask;
+        }
     }
 }

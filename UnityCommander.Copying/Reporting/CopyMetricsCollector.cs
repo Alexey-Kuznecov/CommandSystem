@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using UnityCommander.SystemMetrics;
 
 namespace UnityCommander.Copying.Reporting
 {
@@ -14,7 +11,26 @@ namespace UnityCommander.Copying.Reporting
         private readonly List<(string File, Exception Error)> _errors = new();
         private int _directoriesCreated;
 
-        public void OnFileCopyStarted(string source, string destination) { /* optional */ }
+        // === Монитор скорости диска ===
+        private DiskSpeedMonitor? _diskSpeedMonitor;
+        private DirectoryWriteMetrics? _dirWatcher;
+
+        public void PrepareAllFilesCopy(string source, string destination, bool UseMetrics)
+        {
+            if (UseMetrics)
+            {
+                _dirWatcher = new DirectoryWriteMetrics(destination);
+                _dirWatcher.Start();
+                var driveLetter = DiskUtils.GetPhysicalDiskInstanceFromPath(source);
+
+                _diskSpeedMonitor = new DiskSpeedMonitor(driveLetter);
+                _diskSpeedMonitor.Start(); // Запускаем мониторинг скорости диска для текущего файла
+            }
+        }
+
+        public void OnFileCopyStarted(string source, string destination)
+        {
+        }
 
         public void OnFileCopyCompleted(string source, string destination, long sizeBytes, TimeSpan duration)
         {
@@ -33,21 +49,57 @@ namespace UnityCommander.Copying.Reporting
 
         public void ReportFinal()
         {
+            Console.WriteLine();
+            ReportCopySummary();
+            ReportErrors();
+            ReportSpeed();
+            Reset();
+        }
+
+        private void ReportCopySummary()
+        {
             var totalFiles = _copiedFiles.Count;
             var totalBytes = _copiedFiles.Sum(x => x.Size);
             var totalTime = _globalTimer.Elapsed;
-            var avgTime = TimeSpan.FromMilliseconds(_copiedFiles.Any() ? _copiedFiles.Average(x => x.Duration.TotalMilliseconds) : 0);
+            var avgTime = TimeSpan.FromMilliseconds(
+                totalFiles > 0 ? _copiedFiles.Average(x => x.Duration.TotalMilliseconds) : 0
+            );
 
-            Console.WriteLine($"Copied {totalFiles} files, {totalBytes / 1024.0 / 1024.0:F2} MB in {totalTime.TotalSeconds:F2} s");
+            Console.WriteLine($"Copied {totalFiles} files, {totalBytes / 1024.0 / 1024.0:F2} MB in {totalTime.TotalMinutes:F2} s");
             Console.WriteLine($"Avg file time: {avgTime.TotalMilliseconds:F2} ms, Errors: {_errors.Count}, Dirs: {_directoriesCreated}");
 
-            if (_errors.Count > 0)
+            if (_dirWatcher != null)
             {
-                Console.WriteLine("Errors:");
-                foreach (var (file, ex) in _errors)
-                    Console.WriteLine($" - {file}: {ex.Message}");
+                var watchRepoted = _dirWatcher?.GetSummaryReport();
+                _dirWatcher?.Stop();
+                Console.WriteLine(_dirWatcher?.GetSummaryReport());
             }
         }
-    }
 
+        private void ReportErrors()
+        {
+            if (_errors.Count == 0)
+                return;
+
+            Console.WriteLine("Errors:");
+            foreach (var (file, ex) in _errors)
+                Console.WriteLine($" - {file}: {ex.Message}");
+        }
+
+        private void ReportSpeed()
+        {
+            if (_diskSpeedMonitor == null)
+                return;
+            _diskSpeedMonitor?.StopAndReport();
+        }
+
+        private void Reset()
+        {
+            _copiedFiles.Clear();
+            _errors.Clear();
+            _directoriesCreated = 0;
+            _diskSpeedMonitor?.Dispose();
+            _dirWatcher?.Dispose();
+        }
+    }
 }
