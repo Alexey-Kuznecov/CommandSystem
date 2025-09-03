@@ -4,9 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CommandSystem.Gui.MVVM
+namespace CommandSystem.Gui.Core
 {
-    internal interface ICommandViewModelBinder
+    public interface ICommandViewModelBinder
     {
+        void BindCommands(object viewModel);
     }
 }

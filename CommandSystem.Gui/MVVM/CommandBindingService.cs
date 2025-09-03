@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CommandSystem.Gui.MVVM
 {
-    internal class CommandBindingService
+    public class CommandBindingService
     {
     }
 }

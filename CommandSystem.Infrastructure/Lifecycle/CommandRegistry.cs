@@ -69,5 +69,4 @@ namespace CommandSystem.Infrastructure.Lifecycle
             return _commands.Values.ToList();
         }
     }
-
 }

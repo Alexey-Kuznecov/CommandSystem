@@ -6,7 +6,13 @@ using System.Threading.Tasks;
 
 namespace CommandSystem.Gui.MVVM
 {
-    internal class CommandAvailabilityNotifier
+    public class CommandAvailabilityNotifier
     {
+        public event Action? AvailabilityChanged;
+
+        public void Notify()
+        {
+            AvailabilityChanged?.Invoke();
+        }
     }
 }
