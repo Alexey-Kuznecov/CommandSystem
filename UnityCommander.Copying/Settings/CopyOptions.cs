@@ -13,7 +13,7 @@ namespace UnityCommander.Copying.Settings
         public bool UseMultiThreading { get; set; }
         public IFileFilter? FileFilter { get; set; }
         public bool IsRecursive { get; set; }
-        public bool AllowEmptyDirectories { get; set; }
+        public bool AllowEmptyDirectories { get; set; } = true;
         public bool FlattenStructure { get; set; }
         public bool CopyAllToOneFolder { get; set; }
         public bool OverwriteExistingFiles { get; set; }
