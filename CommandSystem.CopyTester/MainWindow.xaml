@@ -1,0 +1,27 @@
+﻿<Window x:Class="CommandSystem.CopyTester.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" 
+        xmlns:local="clr-namespace:CommandSystem.CopyTester"
+        xmlns:views="clr-namespace:CommandSystem.CopyTester.Views"
+        xmlns:vm="clr-namespace:CommandSystem.CopyTester.ViewModels"
+        Title="Copy Tester" Height="200" Width="400">
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type vm:CopySetupViewModel}">
+            <views:CopySetupView/>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:CopyProgressViewModel}">
+            <views:CopyProgressView/>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type vm:CopyReportViewModel}">
+            <views:CopyReportView/>
+        </DataTemplate>
+    </Window.Resources>
+    <Grid>
+        <StackPanel Margin="10">
+            <TextBlock Text="{Binding CurrentFile}" Margin="0,0,0,10"/>
+            <ContentControl Content="{Binding CurrentViewModel}"/>
+        </StackPanel>
+    </Grid>
+</Window>
