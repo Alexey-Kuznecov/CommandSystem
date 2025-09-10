@@ -6,16 +6,12 @@ using UnityCommander.Copying.Progress;
 
 namespace UnityCommander.Copying.Reporting
 {
-    public class ConsoleProgressReporter : IProgressReporter
+    public class ConsoleProgressReporter(IConsoleOutput output) : IProgressReporter
     {
-        private IConsoleOutput _consoleOutput;
-        private HumanReadableTimeCalculator _humanCalculator;
+        public event Action<ProgressInfo> ProgressChanged = delegate { }; // Initialize with an empty delegate to avoid null
 
-        public ConsoleProgressReporter(IConsoleOutput output)
-        {
-            _consoleOutput = output;
-            _humanCalculator = new HumanReadableTimeCalculator();
-        }
+        private IConsoleOutput _consoleOutput = output;
+        private HumanReadableTimeCalculator _humanCalculator = new HumanReadableTimeCalculator();
 
         public void Report(ProgressInfo progressInfo)
         {

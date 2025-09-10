@@ -17,8 +17,8 @@ namespace UnityCommander.Copying
         private readonly IFileCopyPlanner _fileCopyPlanner;
         private readonly IProgressTracker _progressTracker;
         private readonly IProgressReporter _progressReporter;
-        private readonly ICopyErrorHandler _errorHandler;
-        private readonly ICopySuccessHandler _successHandler;
+        private readonly ICopyErrorHandler? _errorHandler;
+        private readonly ICopySuccessHandler? _successHandler;
         private readonly ICopyMetricsCollector _metrics;
         private IConsoleOutput _consoleOutput;
         private SerilogCopyLogger _copylogger;
@@ -28,8 +28,8 @@ namespace UnityCommander.Copying
             IFileCopyPlanner fileCopyPlanner,
             IProgressTracker progressTracker,
             IProgressReporter progressReporter,
-            ICopyErrorHandler errorHandler,
-            ICopySuccessHandler successHandler,
+            ICopyErrorHandler? errorHandler = null,
+            ICopySuccessHandler? successHandler = null,
             ICopyMetricsCollector? metrics = null)
         {
             _fileCopier = fileCopier;
@@ -37,17 +37,16 @@ namespace UnityCommander.Copying
             _progressTracker = progressTracker;
             _progressReporter = progressReporter;
             _errorHandler = errorHandler;
-            _successHandler = successHandler;
+            _successHandler = successHandler; // Removed redundant null assignment
             _copylogger = new SerilogCopyLogger();
             _metrics = metrics ?? new NullCopyMetricsCollector(); // <= безопасно
-            _consoleOutput = new ConsoleOutput();
         }
 
         public async Task CopyFilesAsync(string sourceDirectory, string destinationDirectory, CopyOptions options, CancellationToken cancellationToken)
         {
             //_progressTracker.Start(0, 0);
             var plannedItems = await _fileCopyPlanner.GetDiscoveredItems(sourceDirectory, destinationDirectory, options, cancellationToken);
-            var folderTracker = new FolderSizeTracker(sourceDirectory);
+            //var folderTracker = new FolderSizeTracker(sourceDirectory);
             if (!plannedItems.Any())
                 return;
 
@@ -160,7 +159,7 @@ namespace UnityCommander.Copying
                     catch (OperationCanceledException)
                     {
                         // Можно логировать отмену, если надо:
-                        _consoleOutput.WriteLine("[CopyManager] Операция копирования была отменена.");
+                        //_consoleOutput.WriteLine("[CopyManager] Операция копирования была отменена.");
                         break; // Выход из цикла, если отмена
                     }
                 }
