@@ -43,6 +43,23 @@ namespace CommandSystem.Infrastructure.Execution
             _registry.Register(new RegisteredCommand(metadata, command));
         }
 
+        public void Dispatch(string commandName, CommandContext context, CancellationToken cancellationToken = default)
+        {
+            var command = _registry.Get(commandName)?.Command;
+
+            if (command == null)
+                throw new InvalidOperationException($"Command '{commandName}' is not registered.");
+
+            if (command is ICommand syncCommand)
+            {
+               _executor.Execute(syncCommand, context);
+            }
+            else
+            {
+                throw new InvalidOperationException($"Unsupported command type: {command.GetType()}");
+            }
+        }
+
         public async Task DispatchAsync(string commandName, CommandContext context, CancellationToken cancellationToken = default)
         {
             var command = _registry.Get(commandName)?.Command;

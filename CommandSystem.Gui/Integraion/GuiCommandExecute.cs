@@ -19,6 +19,13 @@ namespace CommandSystem.Gui.Integraion
             _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
         }
 
+        public CommandContext Execute(string commandName, object? parameter = null, CommandContext? context = null, CancellationToken cancellationToken = default)
+        {
+            var ctx = new CommandContext(commandName, _services, parameter, cancellationToken);
+            _dispatcher.Dispatch(commandName, ctx, cancellationToken);
+            return ctx;
+        }
+
         public Task ExecuteAsync(string commandName, object? parameter = null, CommandContext? context = null, CancellationToken cancellationToken = default)
         {
             var ctx = new CommandContext(commandName, _services, parameter, cancellationToken);

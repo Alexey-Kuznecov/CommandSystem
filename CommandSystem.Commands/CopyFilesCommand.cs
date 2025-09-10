@@ -3,7 +3,6 @@ using CommandSystem.Console.Core;
 using CommandSystem.Console.Integration;
 using Microsoft.Extensions.DependencyInjection;
 using UnityCommander.Copying;
-using UnityCommander.Copying.Core;
 using UnityCommander.Copying.Filtering;
 using UnityCommander.Copying.Settings;
 
@@ -98,7 +97,7 @@ namespace CommandSystem.Commands
                 }
                 catch (OperationCanceledException)
                 {
-                    output.WriteLine("Операция отменена.");
+                    //output.WriteLine("Операция отменена.");
                 }
             }
             else
@@ -113,7 +112,7 @@ namespace CommandSystem.Commands
                 }
                 catch (OperationCanceledException)
                 {
-                    output.WriteLine("\n[CopyFilesCommand] Операция отменена.");
+                    //output.WriteLine("\n[CopyFilesCommand] Операция отменена.");
                 }
             }
         }
