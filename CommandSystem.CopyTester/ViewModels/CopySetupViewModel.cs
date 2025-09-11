@@ -8,22 +8,17 @@ using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
 using UnityCommander.Copying;
+using UnityCommander.Copying.Reporting;
 using UnityCommander.Copying.Settings;
 
 namespace CommandSystem.CopyTester.ViewModels
 {
     public class CopySetupViewModel : ObservableObject
     {
-        private string _sourcePath = "E:\\Projects\\03._Tests\\CopyFileTest\\Source3";
-        private string _destinationPath = "E:\\Projects\\03._Tests\\CopyFileTest\\Target";
         private readonly MainViewModel _main;
-
-        public CopyOptions Options { get; }
-
-        public RelayCommand StartCopyCommand { get; }
-
-        private readonly CopySessionService _sessionService;
-        private readonly CopyManager _copyManager;
+        private readonly CopyOptions _options;
+        private string _sourcePath = string.Empty;
+        private string _targetPath = string.Empty;
 
         public string SourcePath
         {
@@ -31,18 +26,20 @@ namespace CommandSystem.CopyTester.ViewModels
             set => SetProperty(ref _sourcePath, value);
         }
 
-        public string DestinationPath
+        public string TargetPath
         {
-            get => _destinationPath;
-            set => SetProperty(ref _destinationPath, value);
+            get => _targetPath;
+            set => SetProperty(ref _targetPath, value);
         }
 
-        public CopySetupViewModel(CopySessionService sessionService, CopyManager copyManager, MainViewModel main)
+        public RelayCommand StartCopyCommand { get; }
+
+        public CopySetupViewModel(MainViewModel main)
         {
+            SourcePath = "E:\\Projects\\03._Tests\\CopyFileTest\\Source3";
+            TargetPath = "E:\\Projects\\03._Tests\\CopyFileTest\\Target";
             _main = main;
-            _sessionService = sessionService;
-            _copyManager = copyManager;
-            Options = _sessionService.Options;
+            _options = new CopyOptions();
 
             StartCopyCommand = new RelayCommand(async _ =>
             {
@@ -50,11 +47,19 @@ namespace CommandSystem.CopyTester.ViewModels
             });
         }
 
-        private async Task StartCopyAsync()
+        public async Task StartCopyAsync()
         {
-            _sessionService.StartSession(0, 0); // Можно потом вычислять по выбранным файлам
-            _main.CurrentViewModel = _main.ProgressVM;
-            await _copyManager.CopyFilesAsync(SourcePath, DestinationPath, Options, CancellationToken.None);
+            await Task.Run(() =>
+            {
+                var session = new CopySessionService
+                {
+                    SourcePath = SourcePath,
+                    TargetPath = TargetPath,
+                    Options = _options
+                };
+
+                _main.StartWizardCopy(session);
+            });
         }
     }
 }

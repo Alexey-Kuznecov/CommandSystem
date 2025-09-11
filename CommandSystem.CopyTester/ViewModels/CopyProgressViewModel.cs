@@ -1,6 +1,7 @@
 ﻿
 using CommandSystem.Gui.MVVM;
 using System.Windows;
+using System.Windows.Input;
 using UnityCommander.Copying.Progress;
 using UnityCommander.Copying.Reporting;
 
@@ -13,22 +14,58 @@ namespace CommandSystem.CopyTester.ViewModels
         private HumanReadableTimeCalculator _humanCalculator = new HumanReadableTimeCalculator();
 
         private int _percentage;
-        private string _statusText = string.Empty; // Initialize to avoid nullability warning
+        private string _сurrentFileName = string.Empty;
+        private string _remainingTime = string.Empty;
+        private string _totalCopiedText = string.Empty;
+        private string _speedText = string.Empty;
+        private string _filesCopiedText = string.Empty;
+        private string _overallProgressText = string.Empty;
+
+
         public int Percentage
         {
             get => _percentage;
             private set => SetProperty(ref _percentage, value);
         }
 
-        public string StatusText
+        public string CurrentFileName
         {
-            get => _statusText;
-            private set => SetProperty(ref _statusText, value);
+            get => _сurrentFileName;
+            private set => SetProperty(ref _сurrentFileName, value);
         }
 
-        public RelayCommand PauseCommand { get; }
-        public RelayCommand ResumeCommand { get; }
-        public RelayCommand CancelCommand { get; }
+        public string RemainingTime
+        {
+            get => _remainingTime;
+            private set => SetProperty(ref _remainingTime, value);
+        }
+        public string FilesCopiedText
+        {
+            get => _filesCopiedText;
+            private set => SetProperty(ref _filesCopiedText, value);
+        }
+
+        public string TotalCopiedText
+        {
+            get => _totalCopiedText;
+            private set => SetProperty(ref _totalCopiedText, value);
+        }
+
+        public string SpeedText
+        {
+            get => _speedText;
+            private set => SetProperty(ref _speedText, value);
+        }
+
+        public string OverallProgressText
+        {
+            get => _overallProgressText;
+            private set => SetProperty(ref _overallProgressText, value);
+        }
+
+        public ICommand PauseCommand { get; }
+        public ICommand ResumeCommand { get; }
+        public ICommand CancelCommand { get; }
 
         public CopyProgressViewModel(CopySessionService sessionService, IProgressReporter reporter, MainViewModel main)
         {
@@ -36,24 +73,15 @@ namespace CommandSystem.CopyTester.ViewModels
             _main = main;
             reporter.ProgressChanged += info =>
             {
-              
-                int progress = (int)Math.Round(info.CompletionPercentage);
-                Percentage = progress;
-
-                var progressBar = new string('#', Math.Min(20, progress / 5));
-                var remaining = new string('-', 20 - progress / 5);
-
-                var formattedBytes = $"{info.BytesCopied / 1024 / 1024:F2} MB";
-                var speedFormatted = $"{info.SpeedBytesPerSecond / 1024 / 1024:F2} MB/s";
-                var readable = _humanCalculator.GetDisplayValue(info.EstimatedTimeRemaining, DateTime.UtcNow);
-
-                StatusText = $"{progress,3}% " +
-                                $"({info.FilesCopied}/{info.TotalFiles}), {formattedBytes.PadLeft(5)} " +
-                                $"Speed: {speedFormatted.PadLeft(5)} ETA: {readable:mm\\:ss}";
-            
+                this.Percentage = (int)Math.Round(info.CompletionPercentage);
+                this.CurrentFileName = info.CurrentFile ?? string.Empty;
+                this.SpeedText = $"{info.SpeedBytesPerSecond / 1024 / 1024:F2} MB/s";
+                this.RemainingTime = _humanCalculator.GetDisplayValue(info.EstimatedTimeRemaining, DateTime.Now).ToString(@"hh\:mm\:ss");
+                this.OverallProgressText = $"{info.FilesCopied} / {info.TotalFiles} files • {info.BytesCopied / 1024d / 1024d:F2} / {info.TotalBytes / 1024d / 1024d:F2} MB";
+                //this.TotalCopiedText = $"{info.BytesCopied / 1024 / 1024:F2} MB of {info.TotalBytes / 1024 / 1024:F2} MB";
+                //this.FilesCopiedText = $"{info.FilesCopied} / {info.TotalFiles} files"; // <-- вот здесь
+                //_main.CurrentViewModel = _main.ReportVM;
             };
-            
-            _main.CurrentViewModel = _main.ReportVM;
 
             PauseCommand = new RelayCommand(_ => _sessionService.Pause());
             ResumeCommand = new RelayCommand(_ => _sessionService.Resume());

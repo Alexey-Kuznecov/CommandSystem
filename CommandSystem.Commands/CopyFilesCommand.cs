@@ -79,17 +79,17 @@ namespace CommandSystem.Commands
 
                     while (!localToken.IsCancellationRequested)
                     {
-                        var copyTask = _copyManager.CopyFilesAsync(sourceDirectory, destinationDirectory, _copyOptions, localToken);
+                        //var copyTask = _copyManager.CopyFilesAsync(sourceDirectory, destinationDirectory, _copyOptions, localToken);
 
-                        try
-                        {
-                            await copyTask;
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            // Копирование отменено, выходим из цикла
-                            break;
-                        }
+                        //try
+                        //{
+                        //    await copyTask;
+                        //}
+                        //catch (OperationCanceledException)
+                        //{
+                        //    // Копирование отменено, выходим из цикла
+                        //    break;
+                        //}
 
                         ClearDirectory(destinationDirectory);
                         await Task.Delay(100, cancellationToken);
@@ -104,7 +104,7 @@ namespace CommandSystem.Commands
             {
                 try
                 {
-                    await _copyManager.CopyFilesAsync(sourceDirectory, destinationDirectory, _copyOptions, cancellationToken);
+                    //await _copyManager.CopyFilesAsync(sourceDirectory, destinationDirectory, _copyOptions, cancellationToken);
                     if (args.Contains("-c"))
                     {
                         ClearDirectory(destinationDirectory);

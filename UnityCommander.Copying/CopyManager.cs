@@ -1,12 +1,14 @@
 ﻿
 using AlexeyKuznetsov.Logger;
 using CommandSystem.Console.Core;
+using CommandSystem.CopyTester.ViewModels;
 using System.Diagnostics;
 using UnityCommander.Copying.Core;
 using UnityCommander.Copying.Handler;
 using UnityCommander.Copying.Helper;
 using UnityCommander.Copying.Progress;
 using UnityCommander.Copying.Reporting;
+using UnityCommander.Copying.Sessions;
 using UnityCommander.Copying.Settings;
 
 namespace UnityCommander.Copying
@@ -19,15 +21,16 @@ namespace UnityCommander.Copying
         private readonly IProgressReporter _progressReporter;
         private readonly ICopyErrorHandler? _errorHandler;
         private readonly ICopySuccessHandler? _successHandler;
-        private readonly ICopyMetricsCollector _metrics;
-        private IConsoleOutput _consoleOutput;
-        private SerilogCopyLogger _copylogger;
+        private readonly ICopyMetricsCollector? _metrics;
+        private readonly IConsoleOutput _consoleOutput; // Marked as readonly and initialized in constructor
+        private readonly SerilogCopyLogger _copylogger;
 
         public CopyManager(
             IFileCopier fileCopier,
             IFileCopyPlanner fileCopyPlanner,
             IProgressTracker progressTracker,
             IProgressReporter progressReporter,
+            IConsoleOutput? consoleOutput = null, // Added as a required parameter
             ICopyErrorHandler? errorHandler = null,
             ICopySuccessHandler? successHandler = null,
             ICopyMetricsCollector? metrics = null)
@@ -36,25 +39,47 @@ namespace UnityCommander.Copying
             _fileCopyPlanner = fileCopyPlanner;
             _progressTracker = progressTracker;
             _progressReporter = progressReporter;
+            _consoleOutput = consoleOutput; // Initialize _consoleOutput
             _errorHandler = errorHandler;
-            _successHandler = successHandler; // Removed redundant null assignment
+            _successHandler = successHandler;
             _copylogger = new SerilogCopyLogger();
             _metrics = metrics ?? new NullCopyMetricsCollector(); // <= безопасно
         }
 
-        public async Task CopyFilesAsync(string sourceDirectory, string destinationDirectory, CopyOptions options, CancellationToken cancellationToken)
+        // --- НОВАЯ перегрузка: основная реализация, работающая через CopySessionService ---
+        public async Task CopyFilesAsync(CopySessionService session, CancellationToken cancellationToken)
         {
-            //_progressTracker.Start(0, 0);
-            var plannedItems = await _fileCopyPlanner.GetDiscoveredItems(sourceDirectory, destinationDirectory, options, cancellationToken);
-            //var folderTracker = new FolderSizeTracker(sourceDirectory);
+            if (session == null) throw new ArgumentNullException(nameof(session));
+            if (string.IsNullOrWhiteSpace(session.SourcePath) || string.IsNullOrWhiteSpace(session.TargetPath))
+                return;
+
+            // Получаем план (файлы и директории)
+            var plannedItems = await _fileCopyPlanner.GetDiscoveredItems(session.SourcePath, session.TargetPath, session.Options, cancellationToken);
             if (!plannedItems.Any())
                 return;
 
-            var files = plannedItems.OnlyFiles();
-            var dirs = plannedItems.OnlyDirectories();
+            var files = plannedItems.OnlyFiles().ToList();
+            var dirs = plannedItems.OnlyDirectories().ToList();
 
-            // ← ТОЛЬКО ОДИН раз вызываем Start с корректными данными
-            _progressTracker.Start(files.Sum(f => new FileInfo(f.Source).Length), files.Count());
+            // Подготовка общей информации
+            long totalBytes = files.Sum(f => new FileInfo(f.Source).Length);
+            int totalFiles = files.Count;
+
+            // Инициализируем сессию (обнулим счётчики) — если в сессии есть StartSession
+            try
+            {
+                session.StartSession(totalBytes, totalFiles);
+            }
+            catch
+            {
+                // Если StartSession отсутствует или ведёт себя иначе — безопасно проглатываем исключение.
+                // (Это на случай, если у тебя другой вариант реализации сессии).
+            }
+
+            // Инициализируем трекер прогресса один раз
+            _progressTracker.Start(totalBytes, totalFiles);
+
+            // Создание директорий
             foreach (var dir in dirs)
             {
                 if (Directory.Exists(dir.Source) && !Directory.Exists(dir.Destination))
@@ -64,107 +89,113 @@ namespace UnityCommander.Copying
                 }
             }
 
-            int fileIndex = 0; // Logger
-            using var semaphore = new SemaphoreSlim(options.MaxConсurrentTasks);
-            // Уведомляем систему метрик о начале копирования — может использоваться для сбора статистики (например, активные файлы)
-            _metrics.PrepareAllFilesCopy(sourceDirectory, destinationDirectory, options.UseMetrics);
+            int fileIndex = 0; // будем увеличивать атомарно
+            using var semaphore = new SemaphoreSlim(session.Options?.MaxConсurrentTasks ?? 1);
 
-            var tasks = files
-                .Select(async file =>
-                {
-                    //_consoleOutput.WriteLine($"[START_WAIT] {Path.GetFileName(file.Source)} ждёт слот...");
-                    await semaphore.WaitAsync(cancellationToken); // <== захватываем слот
-                    //_consoleOutput.WriteLine($"[ACQUIRED] {Path.GetFileName(file.Source)} начал копирование");
-                    try
-                    {
-                        cancellationToken.ThrowIfCancellationRequested(); // или IsCancellationRequested
+            _metrics.PrepareAllFilesCopy(session.SourcePath, session.TargetPath, session.Options?.UseMetrics ?? false);
 
-                        var source = file.Source;
-                        var destination = file.Destination;
-
-                        // Увеличиваем индекс текущего файла для логгера (используется для отслеживания порядка)
-                        fileIndex++;
-
-                        // Логируем начало копирования файла, полезно для отладки и аудита
-                        _copylogger.LogCopyStarted(source, destination);
-
-                        // Запускаем секундомер для измерения времени копирования одного файла
-                        var stopwatch = Stopwatch.StartNew();
-                        _progressTracker.StartFile(source, new FileInfo(source).Length); // <== Начинаем отслеживание прогресса
-                        // Выполняем асинхронное копирование файла с передачей обработчика прогресса по байтам
-                        await _fileCopier.CopyFileAsync(
-                            source,
-                            destination,
-                            bytesCopied =>
-                            {
-                                _progressTracker.UpdateProgress(bytesCopied);
-                                // Отправляем обновлённую информацию о прогрессе для отображения (например, прогресс-бар)
-                                _progressReporter.Report(_progressTracker.GetProgressInfo()); // 👈 Репортирует каждые 64 KB
-                            },
-                            cancellationToken);
-
-                        // Останавливаем секундомер — завершение измерения времени
-                        stopwatch.Stop();
-                        
-                        // Уведомляем трекер о завершении копирования одного файла (кол-во байт уже обновлено во время копирования)
-                        _progressTracker.CompleteFile();
-                        
-                        // Репортирует об окончании копирования файла
-                        _progressReporter.Report(_progressTracker.GetProgressInfo());
-
-                        // Получаем информацию о прогрессе
-                        var progressInfo = _progressTracker.GetProgressInfo();
-                        
-                        // Уведомляем систему метрик о завершении копирования: путь, размер, затраченное время
-                        _metrics.OnFileCopyCompleted(source, destination, file.FileSize, stopwatch.Elapsed);
-
-                        // Логируем завершение копирования: пути, размер, время и индекс — используется для анализа и отладки
-                        _copylogger.LogCopyCompleted(source, destination, file.FileSize, stopwatch.Elapsed, fileIndex);
-
-                        //_successHandler.HandleSuccess(new FileCopySuccessContext(source, destination, new FileInfo(file.Source).Length));
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Можно логировать отмену, если надо:
-                        _consoleOutput.WriteLine("\n[CopyManager] Операция копирования была отменена.");
-                        throw; // Выход из цикла, если отмена
-                    }
-                    catch (Exception ex)
-                    {
-                        _metrics.OnError(file.Source, ex);
-                        _copylogger.LogCopyError(file.Source, file.Destination, ex); // Logger
-                        //var context = new FileCopyErrorContext(file.Source, file.Destination, ex);
-                        //_errorHandler.HandleError(context);
-                    }
-                    finally
-                    {
-                        semaphore.Release(); // <== освобождаем слот
-                        //_consoleOutput.WriteLine($"[RELEASED] {Path.GetFileName(file.Source)} освободил слот");
-                    }
-                });
-
-            if (options.UseMultiThreading)
+            // Функция для безопасного запуска копирования одного файла
+            var tasks = files.Select(file => Task.Run(async () =>
             {
-                await Task.WhenAll(tasks);
-                _metrics.ReportFinal();
+                await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    var source = file.Source;
+                    var destination = file.Destination;
+
+                    // Атомарный инкремент индекса файла
+                    var thisFileIndex = Interlocked.Increment(ref fileIndex);
+
+                    _copylogger.LogCopyStarted(source, destination);
+
+                    var stopwatch = Stopwatch.StartNew();
+
+                    // Начинаем отслеживание файла
+                    _progressTracker.StartFile(source, new FileInfo(source).Length);
+
+                    // Копирование с обработчиком прогресса — обёртка, чтобы учитывать паузу и обновлять сессию
+                    await _fileCopier.CopyFileAsync(
+                        source,
+                        destination,
+                        bytesCopied =>
+                        {
+                            session.WaitIfPaused();          // блокируем если на паузе
+                            session.Token.ThrowIfCancellationRequested();  // проверка отмены
+                            // Обновляем локальный трекер и репортим прогресс
+                            _progressTracker.UpdateProgress(bytesCopied);
+                            // Обновляем fields сессии
+                            try { session.AddBytes(bytesCopied); } catch { /* безопасно */ }
+
+                            // Отправляем репорт всем подписчикам
+                            _progressReporter.Report(_progressTracker.GetProgressInfo());
+                        },
+                        cancellationToken, session.WaitIfPaused).ConfigureAwait(false);
+
+                    session.AddCopiedFile(destination); // <-- добавляем только после успешного завершения файла
+                    stopwatch.Stop();
+
+                    // После завершения файла
+                    _progressTracker.CompleteFile();
+                    try { session.CompleteFile(); } catch { /* безопасно */ }
+
+                    // Финальный репорт после файла
+                    _progressReporter.Report(_progressTracker.GetProgressInfo());
+
+                    // Обновляем метрики/логи
+                    _metrics.OnFileCopyCompleted(source, destination, file.FileSize, stopwatch.Elapsed);
+                    _copylogger.LogCopyCompleted(source, destination, file.FileSize, stopwatch.Elapsed, thisFileIndex);
+
+                    // При желании: _successHandler.HandleSuccess(...)
+                }
+                catch (OperationCanceledException)
+                {
+                    //_consoleOutput.WriteLine("\n[CopyManager] Операция копирования была отменена.");
+                    session.CleanupAfterCancel(plannedItems);
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    _metrics.OnError(file.Source, ex);
+                    _copylogger.LogCopyError(file.Source, file.Destination, ex);
+                    // Можно вызвать _errorHandler.HandleError(...)
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }, cancellationToken)).ToArray();
+
+            // Выполнение задач (многопоточно или последовательно)
+            if (session.Options?.UseMultiThreading ?? true)
+            {
+                try
+                {
+                    await Task.WhenAll(tasks).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // отмена — безопасно прерываем
+                }
             }
             else
             {
-                foreach (var task in tasks) 
-                { 
+                foreach (var t in tasks)
+                {
                     try
                     {
-                        await task;
+                        await t.ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {
-                        // Можно логировать отмену, если надо:
-                        //_consoleOutput.WriteLine("[CopyManager] Операция копирования была отменена.");
-                        break; // Выход из цикла, если отмена
+                        break;
                     }
                 }
-                _metrics.ReportFinal();
             }
+
+            // Финальный отчёт метрик
+            _metrics.ReportFinal();
         }
     }
 }

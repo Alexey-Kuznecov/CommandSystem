@@ -37,6 +37,7 @@ namespace UnityCommander.Copying.Progress
             _filesCopied = 0;
             _progressInfo = new ProgressInfo();  // Обнуляем информацию о прогрессе
             _progressInfo.TotalFiles = totalFiles;  // Устанавливаем общее количество файлов
+            _progressInfo.TotalBytes = totalBytes; // Устанавливаем общий объём байт
             _speedCalculator?.Reset();
             _timeCalculator = new EstimatedTimeCalculator(totalBytes);
         }
@@ -74,10 +75,10 @@ namespace UnityCommander.Copying.Progress
             _progressInfo.TotalFiles = _totalFiles;
 
             // Если всё скопировано — фиксируем 100%
-            if (_bytesCopied == _totalBytes && _filesCopied == _totalFiles)
-            {
-                _progressInfo.CompletionPercentage = 100.0;
-            }
+            //if (_bytesCopied == _totalBytes && _filesCopied == _totalFiles)
+            //{
+            //    _progressInfo.CompletionPercentage = 100.0;
+            //}
         }
 
         // Завершение отслеживания для конкретного файла

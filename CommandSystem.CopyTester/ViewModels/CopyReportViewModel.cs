@@ -16,9 +16,8 @@ namespace CommandSystem.CopyTester.ViewModels
         public IEnumerable<FileCopyErrorContext> Errors => _sessionService.Errors;
         public IEnumerable<FileCopySuccessContext> Successes => _sessionService.Successes;
 
-        public CopyReportViewModel(CopySessionService sessionService, MainViewModel main)
+        public CopyReportViewModel(MainViewModel main)
         {
-            _sessionService = sessionService;
             _main = main;
         }
     }

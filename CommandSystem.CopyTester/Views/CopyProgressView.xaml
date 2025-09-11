@@ -6,15 +6,38 @@
              xmlns:local="clr-namespace:CommandSystem.CopyTester"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-        <StackPanel>
-            <ProgressBar Value="{Binding Percentage, Mode=OneWay}" Maximum="100" Height="20" />
-            <TextBlock Text="{Binding StatusText, Mode=OneWay}" />
-            <StackPanel Orientation="Horizontal">
-                <Button Content="Pause" Command="{Binding PauseCommand}"/>
-                <Button Content="Resume" Command="{Binding ResumeCommand}"/>
-                <Button Content="Cancel" Command="{Binding CancelCommand}"/>
-            </StackPanel>
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Заголовок -->
+        <TextBlock Text="Копирование файлов..." FontSize="18" FontWeight="Bold"/>
+
+        <!-- Прогресс-бар с процентами -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,10,0,0">
+            <ProgressBar Width="300" Height="20" Value="{Binding Percentage, Mode=OneWay}" Maximum="100"/>
+            <TextBlock Text="{Binding Percentage, Mode=OneWay, StringFormat=' {0}%'}" 
+                   Margin="10,0,0,0" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- Основная информация -->
+        <StackPanel Grid.Row="2" Margin="0,20,0,0">
+            <TextBlock Text="{Binding StatusText, Mode=OneWay}" FontSize="14"/>
+            <TextBlock Text="{Binding CurrentFileName, Mode=OneWay}" FontSize="12" Foreground="Gray"/>
+            <TextBlock Text="{Binding SpeedText, Mode=OneWay}" FontSize="12"/>
+            <TextBlock Text="{Binding RemainingTime, Mode=OneWay}" FontSize="12"/>
+            <TextBlock Text="{Binding OverallProgressText, Mode=OneWay}" FontSize="12"/>
+        </StackPanel>
+
+        <!-- Кнопки -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="Пауза" Command="{Binding PauseCommand}" Margin="5,0"/>
+            <Button Content="Продолжить" Command="{Binding ResumeCommand}" Margin="5,0"/>
+            <Button Content="Отмена" Command="{Binding CancelCommand}" Margin="5,0"/>
         </StackPanel>
     </Grid>
 </UserControl>

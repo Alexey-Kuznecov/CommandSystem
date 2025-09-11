@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:CommandSystem.CopyTester"
         xmlns:views="clr-namespace:CommandSystem.CopyTester.Views"
         xmlns:vm="clr-namespace:CommandSystem.CopyTester.ViewModels"
-        Title="Copy Tester" Height="200" Width="400">
+        Title="Copy Tester" Height="320" Width="500">
     <Window.Resources>
         <DataTemplate DataType="{x:Type vm:CopySetupViewModel}">
             <views:CopySetupView/>

@@ -8,8 +8,8 @@
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid>
         <StackPanel>
-            <TextBox Text="{Binding Options.SourcePath}"/>
-            <TextBox Text="{Binding Options.DestinationPath}"/>
+            <TextBox Text="{Binding SourcePath, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBox Text="{Binding TargetPath, UpdateSourceTrigger=PropertyChanged}" />
             <CheckBox Content="Include hidden files" IsChecked="{Binding Options.IncludeHidden}" />
             <Button Content="Start Copy" Command="{Binding StartCopyCommand}"/>
         </StackPanel>
