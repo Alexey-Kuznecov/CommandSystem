@@ -16,36 +16,39 @@ namespace UnityCommander.Copying.Strategies
             while (stack.Count > 0)
             {
                 var currentSourcePath = stack.Pop();
-
-                // Добавляем директорию
                 var relativePath = Path.GetRelativePath(sourceRoot, currentSourcePath);
                 var destPath = Path.Combine(destinationRoot, relativePath);
+
+                // Проверяем: есть ли файлы внутри этой папки (только в текущем уровне)
+                bool hasFilesInside = Directory.EnumerateFiles(currentSourcePath).Any();
 
                 yield return new DiscoveredItem
                 {
                     Source = currentSourcePath,
                     Destination = destPath,
-                    Type = DiscoveredItemType.Directory
+                    Type = DiscoveredItemType.Directory,
+                    HasFilesInside = hasFilesInside
                 };
 
-                // Получаем все поддиректории
+                // Получаем поддиректории
                 foreach (var dir in Directory.GetDirectories(currentSourcePath))
-                {
-                    stack.Push(dir); // Погружаемся в глубину
-                }
+                    stack.Push(dir);
 
-                // Получаем все файлы в текущей директории
+                // Получаем файлы
                 foreach (var file in Directory.GetFiles(currentSourcePath))
                 {
                     var relPath = Path.GetRelativePath(sourceRoot, file);
                     var destFilePath = Path.Combine(destinationRoot, relPath);
                     var fileInfo = new FileInfo(file);
+
                     yield return new DiscoveredItem
                     {
                         Source = file,
                         Destination = destFilePath,
-                        FileSize = fileInfo.Length,   
-                        Type = DiscoveredItemType.File
+                        FileSize = fileInfo.Length,
+                        FileInfo = fileInfo,
+                        Type = DiscoveredItemType.File,
+                        HasFilesInside = false
                     };
                 }
             }

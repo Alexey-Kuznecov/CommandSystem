@@ -3,6 +3,7 @@ using CommandSystem.Console.Core;
 using CommandSystem.Console.Integration;
 using Microsoft.Extensions.DependencyInjection;
 using UnityCommander.Copying;
+using UnityCommander.Copying.Core;
 using UnityCommander.Copying.Filtering;
 using UnityCommander.Copying.Settings;
 

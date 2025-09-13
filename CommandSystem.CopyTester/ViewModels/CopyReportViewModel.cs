@@ -1,11 +1,6 @@
 ﻿using CommandSystem.Gui.MVVM;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityCommander.Copying.Handler;
+using UnityCommander.Copying.Sessions;
 
 namespace CommandSystem.CopyTester.ViewModels
 {

@@ -8,18 +8,18 @@ namespace UnityCommander.Copying.Settings
 {
     public class CompositeCopySettings : ICopySetting
     {
-        private readonly IEnumerable<ICopySetting> _settings;
+        private readonly IEnumerable<Action<CopyOptions>> _applyActions;
 
-        public CompositeCopySettings(IEnumerable<ICopySetting> settings)
+        public CompositeCopySettings(IEnumerable<Action<CopyOptions>> applyActions)
         {
-            _settings = settings;
+            _applyActions = applyActions;
         }
 
         public void Apply(ref CopyOptions options)
         {
-            foreach (var setting in _settings)
+            foreach (var action in _applyActions)
             {
-                setting.Apply(ref options);
+                action(options);
             }
         }
     }

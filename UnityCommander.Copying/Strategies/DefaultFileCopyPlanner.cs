@@ -37,9 +37,13 @@ namespace UnityCommander.Copying.Strategies
                 }
 
                 // Пропускаем директории, если выключена опция сохранения пустых папок
-                if (item.Type == DiscoveredItemType.Directory && !options.AllowEmptyDirectories)
+                if (item.Type == DiscoveredItemType.Directory)
                 {
-                    continue;
+                    if (!options.AllowEmptyDirectories && !item.HasFilesInside)
+                    {
+                        // реально пустая директория — пропускаем
+                        continue;
+                    }
                 }
 
                 result.Add(item);

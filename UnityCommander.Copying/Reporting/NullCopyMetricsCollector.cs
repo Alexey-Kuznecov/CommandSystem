@@ -17,7 +17,5 @@ namespace UnityCommander.Copying.Reporting
         {
             Console.WriteLine("⚠️ NullCopyMetricsCollector.ReportFinal() вызван — метрики не активны.");
         }
-
-
     }
 }

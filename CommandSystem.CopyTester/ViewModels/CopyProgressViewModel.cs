@@ -1,9 +1,9 @@
 ﻿
 using CommandSystem.Gui.MVVM;
-using System.Windows;
 using System.Windows.Input;
 using UnityCommander.Copying.Progress;
 using UnityCommander.Copying.Reporting;
+using UnityCommander.Copying.Sessions;
 
 namespace CommandSystem.CopyTester.ViewModels
 {
@@ -74,7 +74,7 @@ namespace CommandSystem.CopyTester.ViewModels
             reporter.ProgressChanged += info =>
             {
                 this.Percentage = (int)Math.Round(info.CompletionPercentage);
-                this.CurrentFileName = info.CurrentFile ?? string.Empty;
+                this.CurrentFileName = info.CurrentFilePath ?? string.Empty;
                 this.SpeedText = $"{info.SpeedBytesPerSecond / 1024 / 1024:F2} MB/s";
                 this.RemainingTime = _humanCalculator.GetDisplayValue(info.EstimatedTimeRemaining, DateTime.Now).ToString(@"hh\:mm\:ss");
                 this.OverallProgressText = $"{info.FilesCopied} / {info.TotalFiles} files • {info.BytesCopied / 1024d / 1024d:F2} / {info.TotalBytes / 1024d / 1024d:F2} MB";

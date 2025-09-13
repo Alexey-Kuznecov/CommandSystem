@@ -1,5 +1,4 @@
-﻿
-namespace UnityCommander.Copying.Filtering
+﻿namespace UnityCommander.Copying.Core
 {
     public interface IFileFilter
     {

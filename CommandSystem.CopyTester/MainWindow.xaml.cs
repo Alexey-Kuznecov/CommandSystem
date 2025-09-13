@@ -27,30 +27,6 @@ namespace CommandSystem.CopyTester
     {
         public MainWindow()
         {
-            var services = new ServiceCollection();
-
-            // Сессия копирования (одиночный сервис, чтобы все VM делились состоянием)
-            services.AddSingleton<CopySessionService>();
-
-            // Менеджер копирования
-            services.AddSingleton<CopyManager>();
-
-            // Стратегии и трекеры
-            services.AddSingleton<IProgressCalculator, ProgressCalculator>();
-            services.AddSingleton<ISpeedCalculator, SpeedCalculator>();
-            services.AddSingleton<IFileCopier, StreamFileCopier>();
-            services.AddSingleton<IProgressTracker, ProgressTracker>();
-            services.AddSingleton<IProgressReporter, GuiProgressReporter>();
-            services.AddSingleton<ICopyErrorHandler, LoggerCopyErrorHandler>();
-            services.AddSingleton<ICopySuccessHandler, GuiCopySuccessHandler>();
-            services.AddSingleton<IFileCopyPlanner, DefaultFileCopyPlanner>();
-            services.AddSingleton<ILogger, FileLogger>();
-            // VM
-            services.AddTransient<MainViewModel>();
-
-            var serviceProvider = services.BuildServiceProvider();
-            var mainVM = serviceProvider.GetRequiredService<MainViewModel>();
-            this.DataContext = mainVM;
             InitializeComponent();
         }
     }

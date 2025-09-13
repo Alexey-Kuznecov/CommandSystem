@@ -1,5 +1,6 @@
 ﻿
 using UnityCommander.Copying.Core;
+using UnityCommander.Copying.Settings;
 
 namespace UnityCommander.Copying.Strategies
 {
@@ -8,11 +9,11 @@ namespace UnityCommander.Copying.Strategies
         public async Task CopyFileAsync(
             string sourcePath,
             string destinationPath,
+            int bufferSize,
             Action<long> onBytesCopied,
             CancellationToken cancellationToken,
             Action waitIfPaused)
         {
-            const int bufferSize = 1024 * 64;
             var buffer = new byte[bufferSize];
 
             using var sourceStream = new FileStream(
@@ -34,14 +35,9 @@ namespace UnityCommander.Copying.Strategies
             int bytesRead;
             while ((bytesRead = await sourceStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
             {
-                // 👉 СЮДА перенёс проверку паузы
-                waitIfPaused.Invoke();
-
+                waitIfPaused?.Invoke();
                 cancellationToken.ThrowIfCancellationRequested();
-
                 await destinationStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
-
-                // ⚡ Тут важно: передавать именно "прирост" байт, а не общий прогресс
                 onBytesCopied?.Invoke(bytesRead);
             }
         }

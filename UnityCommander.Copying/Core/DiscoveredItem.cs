@@ -19,5 +19,6 @@ namespace UnityCommander.Copying.Core
         public long FileSize { get; set; } = 0;
         public FileInfo? FileInfo { get; set; }
         public DiscoveredItemType Type { get; set; }
+        public bool HasFilesInside { get; set; }
     }
 }

@@ -1,11 +1,19 @@
 ﻿
+using AlexeyKuznetsov.Logger;
 using CommandSystem.CopyTester.ViewModels;
 using CommandSystem.Gui.MVVM;
+using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
 using System.Collections.ObjectModel;
 
 using UnityCommander.Copying;
+using UnityCommander.Copying.Core;
+using UnityCommander.Copying.Handler;
+using UnityCommander.Copying.Progress;
 using UnityCommander.Copying.Reporting;
+using UnityCommander.Copying.Sessions;
+using UnityCommander.Copying.Settings;
+using UnityCommander.Copying.Strategies;
 
 namespace CommandSystem.CopyTester
 {
@@ -24,26 +32,43 @@ namespace CommandSystem.CopyTester
             set => SetProperty(ref _currentViewModel, value);
         }
 
-        public MainViewModel(CopyManager copyManager, IProgressReporter reporter)
+        public MainViewModel()
         {
-            _copyManager = copyManager;
-            _reporter = reporter;
+            var services = new ServiceCollection();
+
+            // Сессия копирования (одиночный сервис, чтобы все VM делились состоянием)
+            services.AddSingleton<CopySessionService>();
+
+            // Менеджер копирования
+            services.AddSingleton<CopyManager>();
+
+            // Стратегии и трекеры
+            services.AddSingleton<IProgressCalculator, ProgressCalculator>();
+            services.AddSingleton<ISpeedCalculator, SpeedCalculator>();
+            services.AddSingleton<IFileCopier, StreamFileCopier>();
+            services.AddSingleton<IProgressTracker, ProgressTracker>();
+            services.AddSingleton<IProgressReporter, GuiProgressReporter>();
+            services.AddSingleton<ICopyErrorHandler, LoggerCopyErrorHandler>();
+            services.AddSingleton<ICopySuccessHandler, GuiCopySuccessHandler>();
+            services.AddSingleton<IFileCopyPlanner, DefaultFileCopyPlanner>();
+            services.AddSingleton<ILogger, FileLogger>();
+            // VM
+            services.AddTransient<MainViewModel>();
+
+            var serviceProvider = services.BuildServiceProvider();
+
+            _copyManager = serviceProvider.GetRequiredService<CopyManager>();
+            _reporter = serviceProvider.GetRequiredService<IProgressReporter>();
 
             SetupVM = new CopySetupViewModel(this);
-            //ReportVM = new CopyReportViewModel(this);
-
             CurrentViewModel = SetupVM;
         }
 
         // Добавление сессии в очередь и запуск
         public void StartQuickCopy(string source, string destination)
         {
-            var session = new CopySessionService
-            {
-                SourcePath = source,
-                TargetPath = destination
-            };
-            RunCopySession(session);
+            //var session = new CopySessionService();
+            //RunCopySession(session);
         }
 
         public void StartWizardCopy(CopySessionService session)
@@ -57,8 +82,8 @@ namespace CommandSystem.CopyTester
             this.ProgressVM = new CopyProgressViewModel(session, _reporter, this);
             this.CurrentViewModel = ProgressVM;
             var cts = new CancellationTokenSource();
-            session.CancellationToken = cts.Token;
-            _ = _copyManager.CopyFilesAsync(session, cts.Token);
+            //session.CancellationToken = cts.Token;
+            //_ = _copyManager.CopyFilesAsyncOld(session, SetupVM.ToCopyOptions(), cts.Token);
         }
     }
 }
