@@ -3,6 +3,7 @@ using AlexeyKuznetsov.Logger;
 using CommandSystem.Console.Core;
 using System.Diagnostics;
 using System.Reactive.Subjects;
+using System.Threading.Channels;
 using UnityCommander.Copying.Category;
 using UnityCommander.Copying.Core;
 using UnityCommander.Copying.Handler;
@@ -27,7 +28,7 @@ namespace UnityCommander.Copying
         private readonly IProgressTracker _progressTracker;
         private readonly IProgressReporter _progressReporter;
         private readonly ICopyFileReporter _copyFileReporter;
-        private readonly ISmartCategorizer _categorizer;
+        private readonly IFileCategorizer _categorizer;
         private readonly ICopyErrorHandler? _errorHandler;
         private readonly ICopySuccessHandler? _successHandler;
         private readonly ICopyMetricsCollector? _metrics;
@@ -43,7 +44,7 @@ namespace UnityCommander.Copying
             IProgressTracker progressTracker,
             IProgressReporter progressReporter,
             ICopyFileReporter copyFileReporter,
-            ISmartCategorizer smartCategorizer,
+            IFileCategorizer smartCategorizer,
             IConsoleOutput? consoleOutput = null,
             ICopyErrorHandler? errorHandler = null,
             ICopySuccessHandler? successHandler = null,
@@ -71,8 +72,14 @@ namespace UnityCommander.Copying
             var options = new CopyOptions();
             settings.Apply(ref options);
 
-            var plannedItems = await _fileCopyPlanner.GetDiscoveredItems(source, target, options, session.CancellationToken);
+            if (options.UseProgressiveDiscovery)
+            {
+                await CopyFilesAsyncStreamed(source, target, session, options);
+                return;
+            }
 
+            // —=== текущая (безопасная) ветка: собираем весь план и копируем ===—
+            var plannedItems = await _fileCopyPlanner.GetDiscoveredItems(source, target, options, session.CancellationToken);
             var files = plannedItems.OnlyFiles().ToList();
             var dirs = plannedItems.OnlyDirectories().ToList();
 
@@ -83,7 +90,8 @@ namespace UnityCommander.Copying
             session.StartSession(totalBytes, files.Count);
             _progressTracker.Start(totalBytes, files.Count);
 
-            CreateDirectories(dirs);
+            if (!options.UseCategories)  // при категоризации папки создавать не нужно
+                CreateDirectories(dirs);
 
             if (options.UseDualChannels)
             {
@@ -102,27 +110,88 @@ namespace UnityCommander.Copying
             _metrics?.ReportFinal();
         }
 
-        /// <summary>
-        /// Старый метод для тестирования/референса — одноканальный, без разделения на большие/малые файлы.
-        /// </summary>
-        public async Task CopyFilesAsyncOld(CopySessionService session, CopyOptions options, CancellationToken cancellationToken)
+        private async Task CopyFilesAsyncStreamed(string source, string target, CopySessionService session, CopyOptions options)
         {
-            var plannedItems = await _fileCopyPlanner.GetDiscoveredItems(session.SourcePath, session.TargetPath, options, cancellationToken);
+            var cts = CancellationTokenSource.CreateLinkedTokenSource(session.CancellationToken);
+            var token = cts.Token;
 
-            var files = plannedItems.OnlyFiles().ToList();
-            var dirs = plannedItems.OnlyDirectories().ToList();
+            // bounded channel — чтобы не захламлять память
+            var channel = Channel.CreateBounded<DiscoveredItem>(new BoundedChannelOptions(1024)
+            {
+                FullMode = BoundedChannelFullMode.Wait,
+                SingleWriter = true,
+                SingleReader = false
+            });
 
-            if (!files.Any())
-                return;
+            // Producer: планер асинхронно пишет найденные файлы в канал
+            var producer = Task.Run(async () =>
+            {
+                try
+                {
+                    await foreach (var item in _fileCopyPlanner.GetDiscoveredItemsAsyncEnumerable(source, target, options, token))
+                    {
+                        token.ThrowIfCancellationRequested();
 
-            long totalBytes = files.Sum(f => new FileInfo(f.Source).Length);
-            session.StartSession(totalBytes, files.Count);
-            _progressTracker.Start(totalBytes, files.Count);
+                        if (item.Type != DiscoveredItemType.File)
+                        {
+                            // если нужна предварительная обработка директорий в нет-качай режиме — опционально пропускаем
+                            continue;
+                        }
 
-            CreateDirectories(dirs);
+                        // Фильтр
+                        if (options.FileFilter != null && !options.FileFilter.ShouldCopy(item.Source))
+                            continue;
 
-            await ProcessFilesAsync(files, session, options, options.MaxConсurrentTasks, cancellationToken);
+                        // Обновляем totals на лету
+                        session.AddToTotalFiles(1);
+                        session.AddToTotalBytes(item.FileSize);
+                        _progressTracker.IncrementTotalBytes(item.FileSize); // если у тебя такой метод в трекере; если нет — можно добавить
 
+                        // Пишем в канал
+                        await channel.Writer.WriteAsync(item, token);
+                    }
+                }
+                catch (OperationCanceledException) { /* отмена */ }
+                finally
+                {
+                    channel.Writer.TryComplete();
+                }
+            }, token);
+
+            // Перед началом работы мы можем вызвать StartSession с накопленными 0 (в UI будет 0 пока растёт)
+            session.StartSession(0, 0);
+            _progressTracker.Start(0, 0);
+
+            // Consumers: запускаем N консьюмеров, в зависимости от options.UseDualChannels/MaxConcurrentTasks
+            int consumerCount = options.UseDualChannels ? Math.Max(1, options.MaxConсurrentTasks * 2) : Math.Max(1, options.MaxConсurrentTasks);
+
+            var consumers = Enumerable.Range(0, consumerCount)
+                .Select(_ => Task.Run(async () =>
+                {
+                    await foreach (var item in channel.Reader.ReadAllAsync(token))
+                    {
+                        // Обработай каждый файл через твой CopySingleFileAsync (он уже корректно обрабатывает категорию vs destination)
+                        try
+                        {
+                            // В streaming режиме destination уже установлен в item.Destination
+                            await CopySingleFileAsync(item, target, session, options, token);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            session.UpdateFileStatus(item.Source, FileCopyStatus.Failed);
+                            // при отмене — просто прерываем, остальные потребители увидят Completion
+                        }
+                        catch (Exception ex)
+                        {
+                            session.UpdateFileStatus(item.Source, FileCopyStatus.Failed);
+                            _metrics?.OnError(item.Source, ex);
+                            _copylogger.LogCopyError(item.Source, item.Destination, ex);
+                        }
+                    }
+                }, token)).ToArray();
+
+            // Ждём всех
+            await Task.WhenAll(consumers.Prepend(producer));
             _metrics?.ReportFinal();
         }
 
@@ -202,25 +271,8 @@ namespace UnityCommander.Copying
             CopyOptions options,
             CancellationToken cancellationToken)
         {
-            string destinationFile;
-
-            if (options.UseCategories)
-            {
-                string category = await _categorizer.CategorizeAsync(new FileInfo(file.Source));
-                string categoryDir = Path.Combine(destinationRoot, category);
-
-                if (!Directory.Exists(categoryDir))
-                    Directory.CreateDirectory(categoryDir);
-
-                destinationFile = Path.Combine(categoryDir, Path.GetFileName(file.Source));
-                session.OnFileStarted(file.Source, destinationFile, file.FileSize, category);
-            }
-            else
-            {
-                destinationFile = Path.Combine(destinationRoot, Path.GetFileName(file.Source));
-                session.OnFileStarted(file.Source, destinationFile, file.FileSize, "Default");
-            }
-
+            string destinationFile = Path.Combine(destinationRoot, Path.GetFileName(file.Source));
+            session.OnFileStarted(file.Source, destinationFile, file.FileSize, "Default");
             _progressTracker.StartFile(file.Source, new FileInfo(file.Source).Length);
 
             int bufferSize = GetBufferSize(file.Source, options);

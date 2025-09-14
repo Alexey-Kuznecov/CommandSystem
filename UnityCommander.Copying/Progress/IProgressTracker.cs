@@ -38,5 +38,6 @@ namespace UnityCommander.Copying.Progress
         /// </summary>
         /// <returns>Объект <see cref="ProgressInfo"/>, содержащий данные о текущем состоянии операции.</returns>
         ProgressInfo GetProgressInfo();
+        void IncrementTotalBytes(long fileSize);
     }
 }

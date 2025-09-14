@@ -7,13 +7,8 @@ using UnityCommander.Copying.Settings;
 
 namespace UnityCommander.Copying.Core
 {
-    public interface IFileCopyPlanner
+    public interface IFileCopyPlannerAsync
     {
-        public Task<IEnumerable<DiscoveredItem>> GetDiscoveredItems(
-            string sourceDirectory,
-            string destinationDirectory,
-            CopyOptions options,
-            CancellationToken cancellationToken);
         IAsyncEnumerable<DiscoveredItem> GetDiscoveredItemsAsyncEnumerable(string source, string target, CopyOptions options, CancellationToken token);
     }
 }

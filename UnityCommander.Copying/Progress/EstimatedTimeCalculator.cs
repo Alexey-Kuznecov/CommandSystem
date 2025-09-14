@@ -39,5 +39,10 @@ namespace UnityCommander.Copying.Progress
             double estimatedSeconds = remainingBytes / bytesPerSecond;
             return TimeSpan.FromSeconds(estimatedSeconds);
         }
+
+        internal void AddTotalBytes(long fileSize)
+        {
+            //throw new NotImplementedException();
+        }
     }
 }

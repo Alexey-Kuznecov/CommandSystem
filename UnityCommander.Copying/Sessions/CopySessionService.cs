@@ -14,6 +14,9 @@ namespace UnityCommander.Copying.Sessions
         private readonly ICopyLogReporter _logReporter;
         private CancellationTokenSource? _cts;
 
+        private long _totalBytes;
+        private int _totalFiles;
+
         public CopySessionService(string source, string target, ICopyFileReporter reporter, ICopyLogReporter logReporter)
         {
             SourcePath = source;
@@ -160,6 +163,19 @@ namespace UnityCommander.Copying.Sessions
         }
 
         #endregion
+
+        // Новые методы для динамического увеличения totals
+        public void AddToTotalBytes(long bytes)
+        {
+            Interlocked.Add(ref _totalBytes, bytes);
+            TotalBytes = _totalBytes; // если у тебя публичное свойство
+        }
+
+        public void AddToTotalFiles(int count = 1)
+        {
+            Interlocked.Add(ref _totalFiles, count);
+            TotalFiles = _totalFiles;
+        }
 
         #region Очистка после отмены
 

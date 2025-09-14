@@ -1,10 +1,14 @@
-﻿
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading.Tasks;
 using UnityCommander.Copying.Core;
 
 namespace UnityCommander.Copying.Strategies
 {
-    public class RecursiveFullDiscoveryStrategy : IFileDiscoveryStrategy
+    public class RecursiveFullDiscoveryStrategyAsync : IFileDiscoveryStrategyAsync
     {
         public async IAsyncEnumerable<DiscoveredItem> DiscoverAsync(
             string sourceRoot,
@@ -22,15 +26,10 @@ namespace UnityCommander.Copying.Strategies
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var currentSourcePath = stack.Pop();
-                string relativePath = Path.GetRelativePath(sourceRoot, currentSourcePath);
-                string destPath = Path.Combine(destinationRoot, relativePath);
+                var relativePath = Path.GetRelativePath(sourceRoot, currentSourcePath);
+                var destPath = Path.Combine(destinationRoot, relativePath);
 
-                bool hasFilesInside = false;
-                try
-                {
-                    hasFilesInside = Directory.EnumerateFiles(currentSourcePath).Any();
-                }
-                catch { /* нет доступа — считаем, что нет файлов */ }
+                bool hasFilesInside = Directory.EnumerateFiles(currentSourcePath).Any();
 
                 yield return new DiscoveredItem
                 {
@@ -40,40 +39,33 @@ namespace UnityCommander.Copying.Strategies
                     HasFilesInside = hasFilesInside
                 };
 
-                // поддиректории
-                IEnumerable<string> subdirs = Enumerable.Empty<string>();
-                try { subdirs = Directory.EnumerateDirectories(currentSourcePath); } catch { /* skip */ }
-                foreach (var dir in subdirs)
+                // Поддиректории
+                foreach (var dir in Directory.GetDirectories(currentSourcePath))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     stack.Push(dir);
                 }
 
-                // файлы
-                IEnumerable<string> files = Enumerable.Empty<string>();
-                try { files = Directory.EnumerateFiles(currentSourcePath); } catch { /* skip */ }
-                foreach (var file in files)
+                // Файлы
+                foreach (var file in Directory.GetFiles(currentSourcePath))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    FileInfo fi;
-                    try { fi = new FileInfo(file); }
-                    catch { continue; }
-
-                    var rel = Path.GetRelativePath(sourceRoot, file);
-                    var destFilePath = Path.Combine(destinationRoot, rel);
+                    var relPath = Path.GetRelativePath(sourceRoot, file);
+                    var destFilePath = Path.Combine(destinationRoot, relPath);
+                    var fileInfo = new FileInfo(file);
 
                     yield return new DiscoveredItem
                     {
                         Source = file,
                         Destination = destFilePath,
-                        FileSize = fi.Length,
-                        FileInfo = fi,
+                        FileSize = fileInfo.Length,
+                        FileInfo = fileInfo,
                         Type = DiscoveredItemType.File,
                         HasFilesInside = false
                     };
 
-                    // экономим CPU/даём шанс переключиться на другие задачи
+                    // имитация асинхронности при больших каталогах (чтобы не блокировать UI)
                     await Task.Yield();
                 }
             }

@@ -6,21 +6,9 @@ using System.Threading.Tasks;
 
 namespace UnityCommander.Copying.Category
 {
-    public class NeuralCategorizer : ISmartCategorizer
+    public class NeuralCategorizer : IFileCategorizer
     {
-        private Dictionary<string, string> _userCorrections = new();
-        //private readonly ImageClassifier _imageModel;
-        //private readonly TextClassifier _textModel;
-
-        //public NeuralCategorizer(ImageClassifier imageModel, TextClassifier textModel)
-        //{
-        //    _imageModel = imageModel;
-        //    _textModel = textModel;
-        //}
-
-        public NeuralCategorizer()
-        {
-        }
+        private Dictionary<string, string> _userCorrections = new ();
 
         public Task<string> CategorizeAsync(FileInfo file)
         {

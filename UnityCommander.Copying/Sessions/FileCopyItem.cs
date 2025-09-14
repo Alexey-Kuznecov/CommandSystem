@@ -20,14 +20,25 @@ namespace UnityCommander.Copying.Sessions
     public class FileCopyItem : INotifyPropertyChanged
     {
         private int _progress;
-        private string _bytesCopiedText;
-        private string _fileSizeText;
+        private string _bytesCopiedText = string.Empty;
+        private string _fileSizeText = string.Empty;
         private FileCopyStatus _status;
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
         public string Source { get; set; }
         public string Destination { get; set; }
         public long Size { get; set; }
         public long BytesCopied { get; set; }
+
+        public FileCopyItem(string source, string destination)
+        {
+            Source = source;
+            Destination = destination;
+            Size = new FileInfo(source).Length;
+            Status = FileCopyStatus.Pending;
+        }
 
         public string FileSizeText
         {
@@ -51,17 +62,5 @@ namespace UnityCommander.Copying.Sessions
             get => _status;
             set { _status = value; OnPropertyChanged(); }
         }
-
-        public FileCopyItem(string source, string destination)
-        {
-            Source = source;
-            Destination = destination;
-            Size = new FileInfo(source).Length;
-            Status = FileCopyStatus.Pending;
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string? name = null)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }

@@ -101,5 +101,13 @@ namespace UnityCommander.Copying.Progress
         {
             return _progressInfo;
         }
+
+        public void IncrementTotalBytes(long fileSize)
+        {
+            //if (fileSize <= 0) return;
+            //Interlocked.Add(ref _totalBytes, fileSize);
+            //_progressInfo.TotalBytes = _totalBytes;
+            //_timeCalculator?.AddTotalBytes(fileSize);
+        }
     }
 }

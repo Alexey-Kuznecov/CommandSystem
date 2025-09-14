@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
 using UnityCommander.Copying.Core;
 using UnityCommander.Copying.Strategies;
 
@@ -30,6 +26,7 @@ namespace UnityCommander.Copying.Settings
         public bool ContinueOnError { get; set; } = true;
         public int BufferSize { get; set; } = 64 * 1024;     // Основной буфер
         public int MinBufferSize { get; set; } = 8 * 1024;   // Минимальный буфер для маленьких файлов
+        public bool UseProgressiveDiscovery { get; set; } = false;
     }
 
     public enum FileConflictAction

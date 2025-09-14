@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using UnityCommander.Copying.Category;
 using UnityCommander.Copying.Core;
 using UnityCommander.Copying.Filtering;
 using UnityCommander.Copying.Settings;
@@ -11,45 +13,75 @@ namespace UnityCommander.Copying.Strategies
 {
     public class DefaultFileCopyPlanner : IFileCopyPlanner
     {
-        public async Task<IEnumerable<DiscoveredItem>> GetDiscoveredItems(
+        private readonly IFileCategorizer _categorizer;
+
+        public DefaultFileCopyPlanner(IFileCategorizer categorizer)
+        {
+            _categorizer = categorizer ?? throw new ArgumentNullException(nameof(categorizer));
+        }
+
+        // Асинхронный потоковый вариант для producer/consumer
+        public async IAsyncEnumerable<DiscoveredItem> GetDiscoveredItemsAsyncEnumerable(
             string sourceDirectory,
             string destinationDirectory,
             CopyOptions options,
-            CancellationToken cancellationToken)
+            [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            // Используем стратегию обнаружения файлов и директорий
             var discoveryStrategy = options.DiscoveryStrategy ?? new RecursiveFullDiscoveryStrategy();
 
-            // Получаем все найденные элементы (файлы и директории)
-            var discoveredItems = discoveryStrategy.Discover(sourceDirectory, destinationDirectory).ToList();
-
-            var result = new List<DiscoveredItem>();
-
-            foreach (var item in discoveredItems)
+            await foreach (var item in discoveryStrategy.DiscoverAsync(sourceDirectory, destinationDirectory, cancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                // Пропускаем файлы, не прошедшие фильтр (если фильтр задан)
+                // фильтрация по расширениям/паттернам/и т.д.
                 if (item.Type == DiscoveredItemType.File && options.FileFilter != null)
                 {
                     if (!options.FileFilter.ShouldCopy(item.Source))
                         continue;
                 }
 
-                // Пропускаем директории, если выключена опция сохранения пустых папок
+                // пропускаем пустые директории (если требуется)
                 if (item.Type == DiscoveredItemType.Directory)
                 {
                     if (!options.AllowEmptyDirectories && !item.HasFilesInside)
-                    {
-                        // реально пустая директория — пропускаем
                         continue;
+                }
+
+                // категоризация делаем здесь (асинхронно) — planner знает про бизнес-логику
+                if (options.UseCategories && item.Type == DiscoveredItemType.File)
+                {
+                    try
+                    {
+                        var category = await _categorizer.CategorizeAsync(item.FileInfo ?? new FileInfo(item.Source));
+                        item.Category = category ?? string.Empty;
+                        item.Destination = Path.Combine(destinationDirectory, item.Category, Path.GetFileName(item.Source));
+                    }
+                    catch
+                    {
+                        // при ошибке категоризации — fallback в root destination
+                        item.Category = string.Empty;
+                        item.Destination = Path.Combine(destinationDirectory, Path.GetFileName(item.Source));
                     }
                 }
 
-                result.Add(item);
+                yield return item;
             }
+        }
 
-            return result;
+        // Сохраняем обратную совместимость: собираем всё в список (как раньше)
+        public async Task<IEnumerable<DiscoveredItem>> GetDiscoveredItems(
+            string sourceDirectory,
+            string destinationDirectory,
+            CopyOptions options,
+            CancellationToken cancellationToken)
+        {
+            var list = new List<DiscoveredItem>();
+            await foreach (var item in GetDiscoveredItemsAsyncEnumerable(sourceDirectory, destinationDirectory, options, cancellationToken))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                list.Add(item);
+            }
+            return list;
         }
     }
 }
