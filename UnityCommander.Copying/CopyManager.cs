@@ -36,6 +36,8 @@ namespace UnityCommander.Copying
         private readonly SerilogCopyLogger _copylogger;
         private const long SmallFileThreshold = 64 * 1024; // 64 KB
         private readonly Subject<ProgressInfo> _progressSubject = new();
+        private IEnumerable<DiscoveredItem>? _plannedItems;
+
         public IObservable<ProgressInfo> ProgressStream => _progressSubject;
 
         public CopyManager(
@@ -79,9 +81,9 @@ namespace UnityCommander.Copying
             }
 
             // —=== текущая (безопасная) ветка: собираем весь план и копируем ===—
-            var plannedItems = await _fileCopyPlanner.GetDiscoveredItems(source, target, options, session.CancellationToken);
-            var files = plannedItems.OnlyFiles().ToList();
-            var dirs = plannedItems.OnlyDirectories().ToList();
+            _plannedItems = await _fileCopyPlanner.GetDiscoveredItems(source, target, options, session.CancellationToken);
+            var files = _plannedItems.OnlyFiles().ToList();
+            var dirs = _plannedItems.OnlyDirectories().ToList();
 
             if (!files.Any())
                 return;
@@ -138,10 +140,6 @@ namespace UnityCommander.Copying
                             continue;
                         }
 
-                        // Фильтр
-                        if (options.FileFilter != null && !options.FileFilter.ShouldCopy(item.Source))
-                            continue;
-
                         // Обновляем totals на лету
                         session.AddToTotalFiles(1);
                         session.AddToTotalBytes(item.FileSize);
@@ -178,6 +176,8 @@ namespace UnityCommander.Copying
                         }
                         catch (OperationCanceledException)
                         {
+                            if (_plannedItems != null)
+                                session.CleanupAfterCancel(_plannedItems);
                             session.UpdateFileStatus(item.Source, FileCopyStatus.Failed);
                             // при отмене — просто прерываем, остальные потребители увидят Completion
                         }
@@ -235,19 +235,31 @@ namespace UnityCommander.Copying
             int maxConcurrentTasks,
             CancellationToken cancellationToken)
         {
-            using var semaphore = new SemaphoreSlim(maxConcurrentTasks);
+            // Если отключена многопоточность, используем только один поток
+            int concurrency = options.UseMultiThreading ? maxConcurrentTasks : 1;
+
+            using var semaphore = new SemaphoreSlim(concurrency);
 
             var tasks = files.Select(file => Task.Run(async () =>
             {
-                await semaphore.WaitAsync(cancellationToken);
                 try
                 {
-                    await CopySingleFileAsync(file, session.TargetPath, session, options, cancellationToken);
+                    await semaphore.WaitAsync(cancellationToken);
+                    try
+                    {
+                        await CopySingleFileAsync(file, session.TargetPath, session, options, cancellationToken);
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
                 }
                 catch (OperationCanceledException)
                 {
                     session.UpdateFileStatus(file.Source, FileCopyStatus.Failed);
-                    throw;
+                    if (_plannedItems != null)
+                        session.CleanupAfterCancel(_plannedItems);
+                    // НЕ делаем throw
                 }
                 catch (Exception ex)
                 {
@@ -255,10 +267,7 @@ namespace UnityCommander.Copying
                     _metrics?.OnError(file.Source, ex);
                     _copylogger.LogCopyError(file.Source, Path.Combine(session.TargetPath, Path.GetFileName(file.Source)), ex);
                 }
-                finally
-                {
-                    semaphore.Release();
-                }
+
             }, cancellationToken)).ToArray();
 
             await Task.WhenAll(tasks);
@@ -288,6 +297,7 @@ namespace UnityCommander.Copying
                     _progressTracker.UpdateProgress(bytesCopied);
                     session.UpdateFileProgress(file.Source, bytesCopied);
                     _progressReporter.Report(_progressTracker.GetProgressInfo());
+                    Debug.WriteLine($"CurrentFilePath={_progressTracker.GetProgressInfo().CurrentFilePath}, Bytes={_progressTracker.GetProgressInfo().CurrentFileCopiedBytes}");
                 },
                 cancellationToken,
                 session.WaitIfPaused);

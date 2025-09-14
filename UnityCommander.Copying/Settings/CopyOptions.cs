@@ -6,7 +6,7 @@ namespace UnityCommander.Copying.Settings
 {
     public class CopyOptions
     {
-        public bool UseMultiThreading { get; set; }
+        public bool UseMultiThreading { get; set; } = false;
         public IFileFilter? FileFilter { get; set; }
         public bool IsRecursive { get; set; }
         public bool AllowEmptyDirectories { get; set; }
@@ -17,7 +17,7 @@ namespace UnityCommander.Copying.Settings
         public int MaxConсurrentTasks { get; set; } = 5;
         public IFileDiscoveryStrategy? DiscoveryStrategy { get; set; }
         public bool UseMetrics { get; set; }
-        public bool UseDualChannels { get; set; } = false;
+        public bool UseDualChannels { get; set; } = true;
         public bool UseCategories { get; set; } = true;
 
         // 🔥 Новое

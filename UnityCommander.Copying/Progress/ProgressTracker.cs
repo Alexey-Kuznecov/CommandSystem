@@ -42,13 +42,21 @@ namespace UnityCommander.Copying.Progress
             _timeCalculator = new EstimatedTimeCalculator(totalBytes);
         }
 
-        // Начало отслеживания прогресса для конкретного файла
+        private readonly object _progressLock = new(); // для CurrentFileCopiedBytes
+        private string? _currentFilePath;
+        private long _currentFileBytesCopied;
+
         public void StartFile(string sourcePath, long size)
         {
             _elapsedTimePerFile = Stopwatch.StartNew();
-            _progressInfo.CurrentFilePath = sourcePath;
-            _progressInfo.CurrentFileSize = size;
-            _progressInfo.CurrentFileCopiedBytes = 0; // сбрасываем для нового файла
+            lock (_progressLock)
+            {
+                _currentFilePath = sourcePath;
+                _currentFileBytesCopied = 0;
+                _progressInfo.CurrentFilePath = sourcePath;
+                _progressInfo.CurrentFileSize = size;
+                _progressInfo.CurrentFileCopiedBytes = 0;
+            }
         }
 
         // Обновление прогресса (вызывается при копировании каждого байта)
@@ -56,10 +64,17 @@ namespace UnityCommander.Copying.Progress
         {
             // общий прогресс
             long currentBytes = Interlocked.Add(ref _bytesCopied, bytesCopied);
-            _progressInfo.BytesCopied = _bytesCopied;
+            _progressInfo.BytesCopied = currentBytes;
 
             // прогресс по текущему файлу
-            _progressInfo.CurrentFileCopiedBytes += bytesCopied;
+            lock (_progressLock)
+            {
+                if (_currentFilePath != null)
+                {
+                    _currentFileBytesCopied += bytesCopied;
+                    _progressInfo.CurrentFileCopiedBytes = _currentFileBytesCopied;
+                }
+            }
 
             // скорость
             if (_speedCalculator != null)
@@ -81,18 +96,22 @@ namespace UnityCommander.Copying.Progress
             _progressInfo.TotalFiles = _totalFiles;
         }
 
-
-        // Завершение отслеживания для конкретного файла
         public void CompleteFile()
         {
             _elapsedTimePerFile?.Stop();
             Interlocked.Increment(ref _filesCopied);
+
+            lock (_progressLock)
+            {
+                _progressInfo.CurrentFileCopiedBytes = _currentFileBytesCopied;
+                _currentFilePath = null;
+                _currentFileBytesCopied = 0;
+            }
+
             _progressInfo.FilesCopied = _filesCopied;
             _progressInfo.ElapsedTime = _elapsedTimePerFile?.Elapsed ?? TimeSpan.Zero;
 
-            // после завершения файла можно сбросить счётчик,
-            // чтобы следующий StartFile задал новые значения
-            _progressInfo.CurrentFileCopiedBytes = 0;
+            // сброс CurrentFileSize можно делать после этого
             _progressInfo.CurrentFileSize = 0;
         }
 
@@ -104,10 +123,10 @@ namespace UnityCommander.Copying.Progress
 
         public void IncrementTotalBytes(long fileSize)
         {
-            //if (fileSize <= 0) return;
-            //Interlocked.Add(ref _totalBytes, fileSize);
-            //_progressInfo.TotalBytes = _totalBytes;
-            //_timeCalculator?.AddTotalBytes(fileSize);
+            if (fileSize <= 0) return;
+            Interlocked.Add(ref _totalBytes, fileSize);
+            _progressInfo.TotalBytes = _totalBytes;
+            _timeCalculator?.AddTotalBytes(fileSize);
         }
     }
 }
