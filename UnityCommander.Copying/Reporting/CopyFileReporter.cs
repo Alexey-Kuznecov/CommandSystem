@@ -1,5 +1,8 @@
 ﻿
+using AlexeyKuznetsov.Helper;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Drawing;
 using UnityCommander.Copying.Sessions;
 
 namespace UnityCommander.Copying.Reporting
@@ -21,7 +24,7 @@ namespace UnityCommander.Copying.Reporting
 
         private void RunOnUI(Action action) => _invokeOnUI(action);
 
-        public void OnFileStarted(CopySessionService session, string source, string destination, long size)
+        public void OnFileStarted(CopySessionService session, string source, string destination, long size, string category)
         {
             var item = new FileCopyItem(source, destination)
             {
@@ -41,13 +44,20 @@ namespace UnityCommander.Copying.Reporting
         {
             if (_fileMap.TryGetValue(source, out var item))
             {
+                item.BytesCopied += bytesCopied; // безопасное обновление
+                item.Progress = item.Size > 0
+                    ? (int)Math.Round((double)item.BytesCopied / item.Size * 100)
+                    : 0;
+
                 RunOnUI(() =>
                 {
-                    item.BytesCopied = bytesCopied;
+                    item.FileSizeText = FastBytesFarmater.FormatSize(item.Size);
+                    item.BytesCopiedText = FastBytesFarmater.FormatSize(item.BytesCopied);
                     item.Status = FileCopyStatus.InProgress;
                 });
             }
         }
+
 
         public void OnFileCompleted(CopySessionService session, string source, string destination, bool success)
         {
@@ -64,6 +74,11 @@ namespace UnityCommander.Copying.Reporting
         public void OnSessionCompleted(CopySessionService session)
         {
             RunOnUI(() => SessionCompleted?.Invoke(session));
+        }
+
+        public void OnFileCategorized(CopySessionService session, string source, string category)
+        {
+            //_reporter.OnFileCategorized(session, source, category);
         }
     }
 }

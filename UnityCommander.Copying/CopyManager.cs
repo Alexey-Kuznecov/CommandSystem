@@ -2,8 +2,10 @@
 using AlexeyKuznetsov.Logger;
 using CommandSystem.Console.Core;
 using System.Diagnostics;
+using System.IO;
 using System.Reactive.Concurrency;
 using System.Reactive.Subjects;
+using UnityCommander.Copying.Category;
 using UnityCommander.Copying.Core;
 using UnityCommander.Copying.Handler;
 using UnityCommander.Copying.Helper;
@@ -46,7 +48,7 @@ namespace UnityCommander.Copying
         private readonly IProgressReporter _progressReporter;
         
         private readonly ICopyFileReporter _copyFileReporter;
-
+        private readonly ISmartCategorizer _categorizer;
         /// <summary>
         /// Опциональный обработчик ошибок копирования.
         /// </summary>
@@ -103,11 +105,13 @@ namespace UnityCommander.Copying
             IProgressTracker progressTracker,
             IProgressReporter progressReporter,
             ICopyFileReporter copyFileReporter,
+            ISmartCategorizer smartCategorizer,
             IConsoleOutput? consoleOutput = null,
             ICopyErrorHandler? errorHandler = null,
             ICopySuccessHandler? successHandler = null,
             ICopyMetricsCollector? metrics = null)
         {
+            _categorizer = smartCategorizer;
             _copyFileReporter = copyFileReporter;
             _fileCopier = fileCopier ?? throw new ArgumentNullException(nameof(fileCopier));
             _fileCopyPlanner = fileCopyPlanner ?? throw new ArgumentNullException(nameof(fileCopyPlanner));
@@ -132,10 +136,14 @@ namespace UnityCommander.Copying
             var options = new CopyOptions();
             settings.Apply(ref options);
 
-            if (options.UseDualChannels) 
-                await CopyFilesAsync(session, options, session.CancellationToken);
-            else 
-                await CopyFilesAsyncOld(session, options, session.CancellationToken);
+            // Определяем количество каналов
+            //int largeFileTasks = options.MaxConсurrentTasks;              // большие файлы
+            //int smallFileTasks = options.UseDualChannels
+            //    ? options.MaxConсurrentTasks * 2
+            //    : options.MaxConсurrentTasks;                            // маленькие файлы, в одноканальном режиме такое же количество
+
+            //await CopyFilesInternalAsync(session, options, largeFileTasks, smallFileTasks, session.CancellationToken);
+            CopyFilesAsyncOld(session,  options, session.CancellationToken);
         }
 
         /// <summary>
@@ -143,48 +151,40 @@ namespace UnityCommander.Copying
         /// </summary>
         /// <param name="session">Сессия копирования, содержащая пути и настройки.</param>
         /// <param name="cancellationToken">Токен отмены операции.</param>
-        public async Task CopyFilesAsync(CopySessionService session, CopyOptions options, CancellationToken cancellationToken)
+        private async Task CopyFilesInternalAsync(
+            CopySessionService session,
+            CopyOptions options,
+            int largeFileTasks,
+            int smallFileTasks,
+            CancellationToken cancellationToken)
         {
-            // Получаем запланированные файлы и директории
+            // Получаем все файлы и директории
             var (files, dirs) = await PreparePlannedItemsAsync(session.SourcePath, session.TargetPath, options, cancellationToken);
             if (!files.Any())
                 return;
-           
-            // Суммарный размер всех файлов
+
+            // Суммарный размер файлов
             long totalBytes = files.Sum(f => new FileInfo(f.Source).Length);
 
             // Инициализация сессии и трекеров прогресса
             session.StartSession(totalBytes, files.Count);
             _progressTracker.Start(totalBytes, files.Count);
 
-            // Создаём директории назначения
+            // Создание директорий
             CreateDirectories(dirs);
 
-            // Разделяем файлы на маленькие и большие
+            // Разделение на маленькие и большие файлы
             var (smallFiles, largeFiles) = SplitFilesBySize(files);
 
-            ArgumentNullException.ThrowIfNull(options);
+            // Запуск обработки очередей файлов
+            var tasks = new List<Task>
+            {
+                ProcessFileQueueAsync(largeFiles, largeFileTasks, session, options, cancellationToken),
+                ProcessFileQueueAsync(smallFiles, smallFileTasks, session, options, cancellationToken)
+            };
 
-            // Обработка больших файлов ограниченным числом потоков
-            var largeFilesTask = ProcessFileQueueAsync(
-                largeFiles,
-                options?.MaxConсurrentTasks ?? 1,
-                session,
-                options,
-                cancellationToken);
+            await Task.WhenAll(tasks);
 
-            //Обработка маленьких файлов с большим количеством потоков
-            var smallFilesTask = ProcessFileQueueAsync(
-                smallFiles,
-                (options?.MaxConсurrentTasks ?? 1) * 2,
-                session,
-                options,
-                cancellationToken);
-
-            // Дожидаемся окончания всех задач
-            await Task.WhenAll(largeFilesTask, smallFilesTask);
-
-            // Финальная отправка метрик
             _metrics?.ReportFinal();
         }
 
@@ -283,7 +283,8 @@ namespace UnityCommander.Copying
                     var stopwatch = Stopwatch.StartNew();
 #endif
                     var bufferSize = GetBufferSize(file.Source, options);
-                    session.OnFileStarted(file.Source, file.Destination, file.FileSize);
+                    string category = await _categorizer.CategorizeAsync(new FileInfo(file.Source));
+                    session.OnFileStarted(file.Source, file.Destination, file.FileSize, category);
                     await _fileCopier.CopyFileAsync(
                         file.Source,
                         file.Destination,
@@ -354,6 +355,7 @@ namespace UnityCommander.Copying
         }
 
         #endregion
+        
         public void Dispose()
         {
             _progressSubject.OnCompleted();
@@ -384,7 +386,7 @@ namespace UnityCommander.Copying
             // Инициализируем трекер прогресса один раз
             _progressTracker.Start(totalBytes, totalFiles);
 
-            // Создание директорий
+            // Создание общей папки назначения
             foreach (var dir in dirs)
             {
                 if (Directory.Exists(dir.Source) && !Directory.Exists(dir.Destination))
@@ -407,60 +409,73 @@ namespace UnityCommander.Copying
                     cancellationToken.ThrowIfCancellationRequested();
 
                     var source = file.Source;
-                    var destination = file.Destination;
-#if DEBUG1
-                    // Атомарный инкремент индекса файла
-                    var thisFileIndex = Interlocked.Increment(ref fileIndex);
-
-                    _copylogger.LogCopyStarted(source, destination);
-#endif
                     var stopwatch = Stopwatch.StartNew();
 
                     // Начинаем отслеживание файла
                     _progressTracker.StartFile(source, new FileInfo(source).Length);
-
                     int bufferSize = GetBufferSize(source, options);
 
-                    // Копирование с обработчиком прогресса — обёртка, чтобы учитывать паузу и обновлять сессию
+                    string destinationFile;
+
+                    if (options?.UseCategories ?? false)
+                    {
+                        // --- Категоризация ---
+                        string category = await _categorizer.CategorizeAsync(new FileInfo(source));
+                        string categoryDir = Path.Combine(session.TargetPath, category);
+
+                        if (!Directory.Exists(categoryDir))
+                            Directory.CreateDirectory(categoryDir);
+
+                        destinationFile = Path.Combine(categoryDir, Path.GetFileName(source));
+                        session.OnFileStarted(source, destinationFile, file.FileSize, category);
+                    }
+                    else
+                    {
+                        // --- Общая папка ---
+                        destinationFile = Path.Combine(session.TargetPath, Path.GetFileName(source));
+                        session.OnFileStarted(source, destinationFile, file.FileSize, "Default");
+                    }
+
+                    // Копирование с обработчиком прогресса
                     await _fileCopier.CopyFileAsync(
                         source,
-                        destination,
+                        destinationFile,
                         bufferSize,
                         bytesCopied =>
                         {
-                            session.WaitIfPaused();          // блокируем если на паузе
-                            session.CancellationToken.ThrowIfCancellationRequested();  // проверка отмены
-                            // Обновляем локальный трекер и репортим прогресс
-                            _progressTracker.UpdateProgress(bytesCopied);
-                            session.UpdateFileProgress(file.Source, bytesCopied);
-                            // Обновляем fields сессии
-                            try { session.UpdateFileProgress(file.Source, bytesCopied); } catch { /* безопасно */ }
+                            session.WaitIfPaused();
+                            session.CancellationToken.ThrowIfCancellationRequested();
 
-                            // Отправляем репорт всем подписчикам
-                            _progressReporter.Report(_progressTracker.GetProgressInfo());
+                            _progressTracker.UpdateProgress(bytesCopied);
+
+                            var progressInfo = _progressTracker.GetProgressInfo();
+                            try
+                            {
+                                session.UpdateFileProgress(file.Source, progressInfo.CurrentFileCopiedBytes);
+                            }
+                            catch { /* безопасно */ }
+
+                            _progressReporter.Report(progressInfo);
                         },
-                        cancellationToken, session.WaitIfPaused).ConfigureAwait(false);
+                        cancellationToken,
+                        session.WaitIfPaused).ConfigureAwait(false);
+
                     stopwatch.Stop();
 
                     // После завершения файла
                     _progressTracker.CompleteFile();
-                    session.Complete();
-                    session.UpdateFileStatus(file.Source, FileCopyStatus.Completed); // <-- добавляем только после успешного завершения файла
-                    try { session.Complete(); } catch { /* безопасно */ }
+                    session.UpdateFileStatus(file.Source, FileCopyStatus.Completed);
 
-                    // Финальный репорт после файла
                     _progressReporter.Report(_progressTracker.GetProgressInfo());
+
 #if DEBUG1
-                    // Обновляем метрики/логи
-                    _metrics?.OnFileCopyCompleted(source, destination, file.FileSize, stopwatch.Elapsed);
-                    _copylogger.LogCopyCompleted(source, destination, file.FileSize, stopwatch.Elapsed, thisFileIndex);
+        _metrics?.OnFileCopyCompleted(source, destinationFile, file.FileSize, stopwatch.Elapsed);
+        _copylogger.LogCopyCompleted(source, destinationFile, file.FileSize, stopwatch.Elapsed, Interlocked.Increment(ref fileIndex));
 #endif
-                    // При желании: _successHandler.HandleSuccess(...)
                 }
                 catch (OperationCanceledException)
                 {
                     session.UpdateFileStatus(file.Source, FileCopyStatus.Failed);
-                    //_consoleOutput.WriteLine("\n[CopyManager] Операция копирования была отменена.");
                     session.CleanupAfterCancel(plannedItems);
                     throw;
                 }
@@ -469,40 +484,12 @@ namespace UnityCommander.Copying
                     session.UpdateFileStatus(file.Source, FileCopyStatus.Failed);
                     _metrics?.OnError(file.Source, ex);
                     _copylogger.LogCopyError(file.Source, file.Destination, ex);
-                    // Можно вызвать _errorHandler.HandleError(...)
                 }
                 finally
                 {
                     semaphore.Release();
                 }
             }, cancellationToken)).ToArray();
-
-            // Выполнение задач (многопоточно или последовательно)
-            if (options?.UseMultiThreading ?? true)
-            {
-                try
-                {
-                    await Task.WhenAll(tasks).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    // отмена — безопасно прерываем
-                }
-            }
-            else
-            {
-                foreach (var t in tasks)
-                {
-                    try
-                    {
-                        await t.ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        break;
-                    }
-                }
-            }
 
             // Финальный отчёт метрик
             _metrics?.ReportFinal();

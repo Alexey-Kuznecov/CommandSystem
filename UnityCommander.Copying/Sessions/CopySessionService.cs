@@ -96,7 +96,7 @@ namespace UnityCommander.Copying.Sessions
 
         #region Работа с файлами и прогрессом
 
-        public void OnFileStarted(string source, string destination, long size)
+        public void OnFileStarted(string source, string destination, long size, string category)
         {
             source = Path.GetFullPath(source); // нормализуем
             var item = new FileCopyItem(source, destination) { Size = size };
@@ -104,7 +104,7 @@ namespace UnityCommander.Copying.Sessions
             {
                 _copiedFiles.Add(item);
             }
-            _reporter.OnFileStarted(this, source, destination, size);
+            _reporter.OnFileStarted(this, source, destination, size, category);
             _logReporter.OnFileStarted(this, source);
         }
 
@@ -167,27 +167,45 @@ namespace UnityCommander.Copying.Sessions
         {
             foreach (var file in plannedItems.OnlyFiles())
             {
-                try
-                {
-                    if (File.Exists(file.Destination))
-                        File.Delete(file.Destination);
-                }
-                catch
-                {
-                    // Игнорируем ошибки удаления отдельных файлов
-                }
+                TryDeleteFile(file.Destination);
             }
 
             foreach (var dir in plannedItems.OnlyDirectories().OrderByDescending(d => d.Destination.Length))
             {
+                TryDeleteDirectory(dir.Destination);
+            }
+        }
+
+        private void TryDeleteFile(string path, int attempts = 3)
+        {
+            for (int i = 0; i < attempts; i++)
+            {
                 try
                 {
-                    if (Directory.Exists(dir.Destination))
-                        Directory.Delete(dir.Destination, false);
+                    if (File.Exists(path))
+                        File.Delete(path);
+                    break;
                 }
                 catch
                 {
-                    // Игнорируем ошибки удаления отдельных папок
+                    Thread.Sleep(50); // ждём немного и пробуем снова
+                }
+            }
+        }
+
+        private void TryDeleteDirectory(string path, int attempts = 3)
+        {
+            for (int i = 0; i < attempts; i++)
+            {
+                try
+                {
+                    if (Directory.Exists(path))
+                        Directory.Delete(path, true); // рекурсивно
+                    break;
+                }
+                catch
+                {
+                    Thread.Sleep(50);
                 }
             }
         }

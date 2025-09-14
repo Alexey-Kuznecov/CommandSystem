@@ -21,7 +21,8 @@ namespace UnityCommander.Copying.Settings
         public int MaxConсurrentTasks { get; set; } = 5;
         public IFileDiscoveryStrategy? DiscoveryStrategy { get; set; }
         public bool UseMetrics { get; set; }
-        public bool UseDualChannels { get; set; } = true;
+        public bool UseDualChannels { get; set; } = false;
+        public bool UseCategories { get; set; } = true;
 
         // 🔥 Новое
         public FileConflictAction ConflictResolution { get; set; } = FileConflictAction.Overwrite;
