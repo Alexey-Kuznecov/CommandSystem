@@ -27,7 +27,18 @@ namespace UnityCommander.Copying.Strategies
             CopyOptions options,
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            var discoveryStrategy = options.DiscoveryStrategy ?? new RecursiveFullDiscoveryStrategy();
+            IFileDiscoveryStrategy discoveryStrategy;
+
+            if (options.UseCategories)
+            {
+                // сразу используем специализированную стратегию
+                discoveryStrategy = new CategorizedFileDiscoveryStrategy(_categorizer);
+            }
+            else
+            {
+                // если явно задана стратегия — используем её, иначе рекурсивную полную
+                discoveryStrategy = options.DiscoveryStrategy ?? new RecursiveFullDiscoveryStrategy();
+            }
 
             await foreach (var item in discoveryStrategy.DiscoverAsync(sourceDirectory, destinationDirectory, cancellationToken))
             {
@@ -45,23 +56,6 @@ namespace UnityCommander.Copying.Strategies
                 {
                     if (!options.AllowEmptyDirectories && !item.HasFilesInside)
                         continue;
-                }
-
-                // категоризация делаем здесь (асинхронно) — planner знает про бизнес-логику
-                if (options.UseCategories && item.Type == DiscoveredItemType.File)
-                {
-                    try
-                    {
-                        var category = await _categorizer.CategorizeAsync(item.FileInfo ?? new FileInfo(item.Source));
-                        item.Category = category ?? string.Empty;
-                        item.Destination = Path.Combine(destinationDirectory, item.Category, Path.GetFileName(item.Source));
-                    }
-                    catch
-                    {
-                        // при ошибке категоризации — fallback в root destination
-                        item.Category = string.Empty;
-                        item.Destination = Path.Combine(destinationDirectory, Path.GetFileName(item.Source));
-                    }
                 }
 
                 yield return item;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using UnityCommander.Copying.Category;
@@ -8,7 +9,7 @@ using UnityCommander.Copying.Core;
 
 namespace UnityCommander.Copying.Strategies
 {
-    public class CategorizedFileDiscoveryStrategy //: IFileDiscoveryStrategy
+    public class CategorizedFileDiscoveryStrategy : IFileDiscoveryStrategy
     {
         private readonly IFileCategorizer _categorizer;
 
@@ -17,28 +18,37 @@ namespace UnityCommander.Copying.Strategies
             _categorizer = categorizer ?? throw new ArgumentNullException(nameof(categorizer));
         }
 
-        public IEnumerable<DiscoveredItem> Discover(string sourceRoot, string destinationRoot)
+        public async IAsyncEnumerable<DiscoveredItem> DiscoverAsync(
+            string sourceRoot,
+            string destinationRoot,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             if (!Directory.Exists(sourceRoot))
                 yield break;
 
             foreach (var file in Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories))
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 var fileInfo = new FileInfo(file);
-                var category = _categorizer.CategorizeAsync(fileInfo).GetAwaiter().GetResult(); // синхронно для примера
-                var destPath = Path.Combine(destinationRoot, category, fileInfo.Name);
+                var category = await _categorizer.CategorizeAsync(fileInfo).ConfigureAwait(false);
+                var filePath = Path.Combine(destinationRoot, category ?? string.Empty, fileInfo.Name);
+                var destPath = Path.GetDirectoryName(filePath) ?? destinationRoot;
+                if (!Directory.Exists(destPath))
+                    Directory.CreateDirectory(destPath);
 
                 yield return new DiscoveredItem
                 {
                     Source = file,
-                    Destination = destPath,
+                    Destination = filePath,
                     FileSize = fileInfo.Length,
                     FileInfo = fileInfo,
                     Type = DiscoveredItemType.File,
                     HasFilesInside = false,
-                    Category = category // если есть поле Category
+                    Category = category ?? string.Empty
                 };
             }
         }
     }
+
 }

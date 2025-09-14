@@ -271,7 +271,7 @@ namespace UnityCommander.Copying
             CopyOptions options,
             CancellationToken cancellationToken)
         {
-            string destinationFile = Path.Combine(destinationRoot, Path.GetFileName(file.Source));
+            string destinationFile = file.Destination;
             session.OnFileStarted(file.Source, destinationFile, file.FileSize, "Default");
             _progressTracker.StartFile(file.Source, new FileInfo(file.Source).Length);
 
