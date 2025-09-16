@@ -9,18 +9,14 @@
   <ItemGroup>
     <PackageReference Include="System.Reactive" Version="6.0.2" />
   </ItemGroup>
-	<!--<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-		<Exec Command="xcopy &quot;$(TargetDir)$(TargetFileName)&quot; &quot;$(SolutionDir)CommandSystem.CLI\bin\Debug\net8.0\cmd&quot; /Y /I /E" />
-	</Target>-->
+
   <ItemGroup>
     <ProjectReference Include="..\CommandSystem.Console\CommandSystem.Console.csproj" />
     <ProjectReference Include="..\CommandSystem.Gui\CommandSystem.Gui.csproj" />
     <ProjectReference Include="..\UnityCommander.SystemMetrics\UnityCommander.SystemMetrics.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Reference Include="AlexeyKuznetsov">
-      <HintPath>..\..\AlexeyKuznetsov\AlexeyKuznetsov\bin\Debug\net8.0\AlexeyKuznetsov.dll</HintPath>
-    </Reference>
-  </ItemGroup>
+	<!--<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="xcopy &quot;$(TargetDir)$(TargetFileName)&quot; &quot;$(SolutionDir)CommandSystem.CLI\bin\Debug\net8.0\cmd&quot; /Y /I /E" />
+	</Target>-->
 
 </Project>
