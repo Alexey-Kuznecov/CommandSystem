@@ -2,6 +2,7 @@
 using AlexeyKuznetsov.Logger;
 using CommandSystem.Console.Core;
 using System.Diagnostics;
+using System.Reactive.Concurrency;
 using System.Reactive.Subjects;
 using System.Threading.Channels;
 using UnityCommander.Copying.Category;
@@ -12,6 +13,7 @@ using UnityCommander.Copying.Progress;
 using UnityCommander.Copying.Reporting;
 using UnityCommander.Copying.Sessions;
 using UnityCommander.Copying.Settings;
+using UnityCommander.SystemMetrics;
 
 namespace UnityCommander.Copying
 {
@@ -37,7 +39,6 @@ namespace UnityCommander.Copying
         private const long SmallFileThreshold = 64 * 1024; // 64 KB
         private readonly Subject<ProgressInfo> _progressSubject = new();
         private IEnumerable<DiscoveredItem>? _plannedItems;
-
         public IObservable<ProgressInfo> ProgressStream => _progressSubject;
 
         public CopyManager(
@@ -108,8 +109,9 @@ namespace UnityCommander.Copying
             {
                 await ProcessFilesAsync(files, session, options, options.MaxConсurrentTasks, session.CancellationToken);
             }
-
-            _metrics?.ReportFinal();
+            // Временное решение : экспорт метрик по завершении
+            //var exp = _metrics?.StopAndCollectReport();
+            //session.ExportMetrics(exp);
         }
 
         private async Task CopyFilesAsyncStreamed(string source, string target, CopySessionService session, CopyOptions options)
@@ -162,7 +164,6 @@ namespace UnityCommander.Copying
 
             // Consumers: запускаем N консьюмеров, в зависимости от options.UseDualChannels/MaxConcurrentTasks
             int consumerCount = options.UseDualChannels ? Math.Max(1, options.MaxConсurrentTasks * 2) : Math.Max(1, options.MaxConсurrentTasks);
-
             var consumers = Enumerable.Range(0, consumerCount)
                 .Select(_ => Task.Run(async () =>
                 {
@@ -235,16 +236,17 @@ namespace UnityCommander.Copying
             int maxConcurrentTasks,
             CancellationToken cancellationToken)
         {
+
             // Если отключена многопоточность, используем только один поток
             int concurrency = options.UseMultiThreading ? maxConcurrentTasks : 1;
-
             using var semaphore = new SemaphoreSlim(concurrency);
-
+            _metrics?.PrepareAllFilesCopy(session.SourcePath, session.TargetPath, options.UseMetrics);
             var tasks = files.Select(file => Task.Run(async () =>
             {
                 try
                 {
                     await semaphore.WaitAsync(cancellationToken);
+                    
                     try
                     {
                         await CopySingleFileAsync(file, session.TargetPath, session, options, cancellationToken);
@@ -270,6 +272,7 @@ namespace UnityCommander.Copying
 
             }, cancellationToken)).ToArray();
 
+
             await Task.WhenAll(tasks);
         }
 
@@ -283,7 +286,8 @@ namespace UnityCommander.Copying
             string destinationFile = file.Destination;
             session.OnFileStarted(file.Source, destinationFile, file.FileSize, "Default");
             _progressTracker.StartFile(file.Source, new FileInfo(file.Source).Length);
-
+            // Запускаем секундомер для измерения времени копирования одного файла
+            var stopwatch = Stopwatch.StartNew();
             int bufferSize = GetBufferSize(file.Source, options);
 
             await _fileCopier.CopyFileAsync(
@@ -297,11 +301,14 @@ namespace UnityCommander.Copying
                     _progressTracker.UpdateProgress(bytesCopied);
                     session.UpdateFileProgress(file.Source, bytesCopied);
                     _progressReporter.Report(_progressTracker.GetProgressInfo());
-                    Debug.WriteLine($"CurrentFilePath={_progressTracker.GetProgressInfo().CurrentFilePath}, Bytes={_progressTracker.GetProgressInfo().CurrentFileCopiedBytes}");
+                    //Debug.WriteLine($"CurrentFilePath={_progressTracker.GetProgressInfo().CurrentFilePath}, Bytes={_progressTracker.GetProgressInfo().CurrentFileCopiedBytes}");
                 },
                 cancellationToken,
                 session.WaitIfPaused);
-
+            // Останавливаем секундомер — завершение измерения времени
+            stopwatch.Stop();
+            // Уведомляем систему метрик о завершении копирования: путь, размер, затраченное время
+            _metrics?.OnFileCopyCompleted(file.Source, destinationFile, file.FileSize, stopwatch.Elapsed);
             _progressTracker.CompleteFile();
             session.UpdateFileStatus(file.Source, FileCopyStatus.Completed);
         }

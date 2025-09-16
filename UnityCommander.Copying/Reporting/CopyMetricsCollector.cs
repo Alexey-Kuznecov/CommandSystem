@@ -47,9 +47,38 @@ namespace UnityCommander.Copying.Reporting
             Interlocked.Increment(ref _directoriesCreated);
         }
 
+        public CopyMetricsSnapshot GetFinalSnapshot()
+        {
+            var totalBytes = _copiedFiles.Sum(f => f.Size);
+            var totalTime = _globalTimer.Elapsed;
+            return new CopyMetricsSnapshot
+            {
+                TotalFiles = _copiedFiles.Count,
+                TotalBytes = totalBytes,
+                TotalDuration = totalTime,
+                AverageSpeedBytesPerSec = totalTime.TotalSeconds > 0 ? totalBytes / totalTime.TotalSeconds : 0,
+                ErrorsCount = _errors.Count
+            };
+        }
+
+        public FinalCopyReport StopAndCollectReport()
+        {
+            var copySnapshot = this.GetFinalSnapshot();
+            var diskSnapshot = _diskSpeedMonitor?.StopAndExport();
+            if (_diskSpeedMonitor != null)
+            {
+                return new FinalCopyReport
+                {
+                    CopyMetrics = copySnapshot,
+                    DiskMetrics = diskSnapshot
+                };
+            }
+            return null;
+        }
+
         public void ReportFinal()
         {
-            Console.WriteLine();
+            Debug.WriteLine("");
             ReportCopySummary();
             ReportErrors();
             ReportSpeed();
@@ -65,14 +94,14 @@ namespace UnityCommander.Copying.Reporting
                 totalFiles > 0 ? _copiedFiles.Average(x => x.Duration.TotalMilliseconds) : 0
             );
 
-            Console.WriteLine($"Copied {totalFiles} files, {totalBytes / 1024.0 / 1024.0:F2} MB in {totalTime.TotalMinutes:F2} s");
-            Console.WriteLine($"Avg file time: {avgTime.TotalMilliseconds:F2} ms, Errors: {_errors.Count}, Dirs: {_directoriesCreated}");
+            Debug.WriteLine($"Copied {totalFiles} files, {totalBytes / 1024.0 / 1024.0:F2} MB in {totalTime.TotalMinutes:F2} s");
+            Debug.WriteLine($"Avg file time: {avgTime.TotalMilliseconds:F2} ms, Errors: {_errors.Count}, Dirs: {_directoriesCreated}");
 
             if (_dirWatcher != null)
             {
                 var watchRepoted = _dirWatcher?.GetSummaryReport();
                 _dirWatcher?.Stop();
-                Console.WriteLine(_dirWatcher?.GetSummaryReport());
+                Debug.WriteLine(_dirWatcher?.GetSummaryReport());
             }
         }
 
@@ -81,16 +110,16 @@ namespace UnityCommander.Copying.Reporting
             if (_errors.Count == 0)
                 return;
 
-            Console.WriteLine("Errors:");
+            Debug.WriteLine("Errors:");
             foreach (var (file, ex) in _errors)
-                Console.WriteLine($" - {file}: {ex.Message}");
+                Debug.WriteLine($" - {file}: {ex.Message}");
         }
 
         private void ReportSpeed()
         {
-            if (_diskSpeedMonitor == null)
-                return;
-            _diskSpeedMonitor?.StopAndReport();
+            //if (_diskSpeedMonitor == null)
+            //    return;
+            //_diskSpeedMonitor?.StopAndReport();
         }
 
         private void Reset()

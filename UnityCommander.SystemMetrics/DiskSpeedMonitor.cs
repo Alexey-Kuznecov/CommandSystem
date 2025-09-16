@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace UnityCommander.SystemMetrics
 {
@@ -7,7 +8,7 @@ namespace UnityCommander.SystemMetrics
         private readonly PerformanceCounter _writeCounter;
         private readonly PerformanceCounter _readCounter;
         private readonly CancellationTokenSource _cts = new();
-        
+
         private long _minSpeed = long.MaxValue;
         private long _maxSpeed = 0;
         private long _totalSpeed = 0;
@@ -37,25 +38,33 @@ namespace UnityCommander.SystemMetrics
                     _totalSpeed += speed;
                     _samples++;
 
-                    //Console.WriteLine($"[DiskSpeed] Write: {speed / 1024.0 / 1024.0:F2} MB/s");
                     await Task.Delay(1000);
                 }
             });
         }
 
-        public void StopAndReport()
+        public DiskSpeedSnapshot StopAndExport()
         {
             _cts.Cancel();
+
             if (_samples == 0)
             {
-                Console.WriteLine("[DiskSpeed] No samples collected.");
-                return;
+                return new DiskSpeedSnapshot
+                {
+                    AverageMBps = 0,
+                    MinMBps = 0,
+                    MaxMBps = 0,
+                    Samples = 0
+                };
             }
 
-            Console.WriteLine("[DiskSpeed] Final Report:");
-            Console.WriteLine($" - Avg: {_totalSpeed / _samples / 1024.0 / 1024.0:F2} MB/s");
-            Console.WriteLine($" - Min: {_minSpeed / 1024.0 / 1024.0:F2} MB/s");
-            Console.WriteLine($" - Max: {_maxSpeed / 1024.0 / 1024.0:F2} MB/s");
+            return new DiskSpeedSnapshot
+            {
+                AverageMBps = _totalSpeed / (double)_samples / 1024 / 1024,
+                MinMBps = _minSpeed / 1024.0 / 1024.0,
+                MaxMBps = _maxSpeed / 1024.0 / 1024.0,
+                Samples = _samples
+            };
         }
 
         public void Dispose()
@@ -65,4 +74,5 @@ namespace UnityCommander.SystemMetrics
             _readCounter?.Dispose();
         }
     }
+
 }

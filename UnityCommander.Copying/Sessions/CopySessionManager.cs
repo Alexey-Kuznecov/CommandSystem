@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
 using UnityCommander.Copying.Reporting;
 
 namespace UnityCommander.Copying.Sessions
@@ -14,6 +10,8 @@ namespace UnityCommander.Copying.Sessions
         private readonly ICopyLogReporter _logReporter;
         public IReadOnlyList<CopySessionService> Sessions => _sessions.AsReadOnly();
         public CopySessionService? CurrentSession { get; set; }
+        public event EventHandler<SessionState>? CurrentSessionStateChanged;
+
         public CopySessionManager(ICopyFileReporter reporter, ICopyLogReporter logReporter)
         {
             _logReporter = logReporter;
@@ -23,6 +21,7 @@ namespace UnityCommander.Copying.Sessions
         public CopySessionService CreateSession(string source, string target)
         {
             var session = new CopySessionService(source, target, _reporter, _logReporter);
+            session.StateChanged += (s, state) => CurrentSessionStateChanged?.Invoke(s, state);
             _sessions.Add(session);
             CurrentSession = session;
             return session;

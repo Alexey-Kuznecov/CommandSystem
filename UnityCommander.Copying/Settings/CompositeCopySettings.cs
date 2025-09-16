@@ -6,18 +6,32 @@ using System.Threading.Tasks;
 
 namespace UnityCommander.Copying.Settings
 {
+    public enum SettingPriority
+    {
+        Default = 100,
+        Session = 200,
+        User = 300
+    }
+
     public class CompositeCopySettings : ICopySetting
     {
-        private readonly IEnumerable<Action<CopyOptions>> _applyActions;
+        private readonly List<(int Priority, Action<CopyOptions> Action)> _applyActions = new();
 
-        public CompositeCopySettings(IEnumerable<Action<CopyOptions>> applyActions)
+        public CompositeCopySettings(IEnumerable<(int Priority, Action<CopyOptions>)> applyActions)
         {
-            _applyActions = applyActions;
+            _applyActions.AddRange(applyActions);
+        }
+
+        public CompositeCopySettings() { }
+
+        public void Add(SettingPriority priority, Action<CopyOptions> action)
+        {
+            _applyActions.Add(((int)priority, action));
         }
 
         public void Apply(ref CopyOptions options)
         {
-            foreach (var action in _applyActions)
+            foreach (var (_, action) in _applyActions.OrderBy(x => x.Priority))
             {
                 action(options);
             }

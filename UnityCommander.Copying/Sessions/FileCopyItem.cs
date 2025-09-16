@@ -31,7 +31,8 @@ namespace UnityCommander.Copying.Sessions
         public string Destination { get; set; }
         public long Size { get; set; }
         public long BytesCopied { get; set; }
-
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
         public FileCopyItem(string source, string destination)
         {
             Source = source;

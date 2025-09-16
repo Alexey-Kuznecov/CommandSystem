@@ -19,18 +19,27 @@ namespace UnityCommander.Copying.Progress
 
             _lastUpdateTime = now;
 
-            // Если осталось больше 1 минуты — округляем до 10 секунд
-            if (estimated.TotalMinutes >= 1)
+            if (double.IsNaN(estimated.TotalSeconds) || double.IsInfinity(estimated.TotalSeconds))
             {
-                estimated = TimeSpan.FromSeconds(Math.Round(estimated.TotalSeconds / 10.0) * 10);
-            }
-            else if (estimated.TotalSeconds >= 10)
-            {
-                estimated = TimeSpan.FromSeconds(Math.Round(estimated.TotalSeconds / 5.0) * 5);
+                estimated = TimeSpan.Zero; // неизвестно — ставим 0 или "—"
             }
             else
             {
-                estimated = TimeSpan.FromSeconds(Math.Round(estimated.TotalSeconds)); // мелкое — просто в секундах
+                // жёсткий лимит на адекватность (например, 365 дней)
+                var cappedSeconds = Math.Min(estimated.TotalSeconds, TimeSpan.FromDays(365).TotalSeconds);
+
+                if (estimated.TotalMinutes >= 1)
+                {
+                    estimated = TimeSpan.FromSeconds(Math.Round(cappedSeconds / 10.0) * 10);
+                }
+                else if (estimated.TotalSeconds >= 10)
+                {
+                    estimated = TimeSpan.FromSeconds(Math.Round(cappedSeconds / 5.0) * 5);
+                }
+                else
+                {
+                    estimated = TimeSpan.FromSeconds(Math.Round(cappedSeconds)); // мелкое — просто в секундах
+                }
             }
 
             _lastDisplayValue = estimated;

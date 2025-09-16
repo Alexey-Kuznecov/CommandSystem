@@ -1,8 +1,6 @@
 ﻿
 using AlexeyKuznetsov.Helper;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Drawing;
 using UnityCommander.Copying.Sessions;
 
 namespace UnityCommander.Copying.Reporting
