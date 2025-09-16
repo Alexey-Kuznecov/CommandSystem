@@ -13,8 +13,6 @@ namespace UnityCommander.Copying.Sessions
         // --- Контроль состояния ---
         private readonly ManualResetEventSlim _pauseEvent = new(true); // для "паузы" (true = работает, Reset = стоп)
                                                                        // Change the declaration of the `_cts` field to make it mutable by removing the `readonly` modifier.
-        private CancellationTokenSource? _cts; // Removed 'readonly' to allow reassignment
-
         // --- Данные о файлах ---
         private readonly List<FileCopyItem> _copiedFiles = new();       // все скопированные/копируемые файлы
         private long _totalBytes;                                       // общий размер всех файлов (счётчик внутри)
@@ -23,18 +21,16 @@ namespace UnityCommander.Copying.Sessions
         // --- Внешние зависимости ---
         private readonly ICopyFileReporter _reporter;                   // для UI/прогресса
         private readonly ICopyLogReporter _logReporter;                 // для лога (события, ошибки, детали)
-
-        // --- Текущее состояние сессии ---
-        private SessionState _state;
-        public event EventHandler<SessionState>? StateChanged;          // UI/ViewModel могут подписаться
+        private readonly ICopySessionController _controller;
 
         // --- Конструктор ---
-        public CopySessionService(string source, string target, ICopyFileReporter reporter, ICopyLogReporter logReporter)
+        public CopySessionService(string source, string target, ICopySessionController controller, ICopyFileReporter reporter, ICopyLogReporter logReporter)
         {
             SourcePath = source;
             TargetPath = target;
             _reporter = reporter ?? throw new ArgumentNullException(nameof(reporter));
             _logReporter = logReporter;
+            _controller = controller;
         }
 
         #region Свойства
@@ -57,28 +53,12 @@ namespace UnityCommander.Copying.Sessions
         public int TotalFiles { get; private set; }     // сколько всего файлов
         public long TotalBytes { get; private set; }    // сколько всего байт
 
-        // --- Флаги состояния ---
-        public bool IsRunning { get; private set; }
-        public bool IsPaused { get; private set; }
-        public bool IsCancelled { get; private set; }
-
-        // --- Текущее состояние ---
-        public SessionState State
-        {
-            get => _state;
-            private set
-            {
-                if (SetProperty(ref _state, value))
-                    StateChanged?.Invoke(this, _state);
-            }
-        }
-
         // --- Ошибки и успехи (подробности по каждому файлу) ---
         public List<FileCopyErrorContext> Errors { get; } = new();
         public List<FileCopySuccessContext> Successes { get; } = new();
 
         // --- CancellationToken для внешних задач ---
-        public CancellationToken CancellationToken => _cts?.Token ?? CancellationToken.None;
+        public CancellationToken CancellationToken => _controller.CancellationToken;
 
         #endregion
 
@@ -87,7 +67,6 @@ namespace UnityCommander.Copying.Sessions
         // запуск новой сессии
         public void StartSession(long totalBytes, int totalFiles)
         {
-            State = SessionState.Running;
             TotalBytes = totalBytes;
             TotalFiles = totalFiles;
             CurrentBytesCopied = 0;
@@ -96,46 +75,34 @@ namespace UnityCommander.Copying.Sessions
             Errors.Clear();
             Successes.Clear();
 
-            IsRunning = true;
-            IsPaused = false;
-            IsCancelled = false;
-
-            _cts = new CancellationTokenSource();
+            _controller.Start(totalBytes, totalFiles);
             _logReporter.OnSessionStarted(this);
         }
 
         // пауза
         public void Pause()
         {
-            State = SessionState.Paused;
-            IsPaused = true;
-            _pauseEvent.Reset(); // стоп
+            _controller.Pause();
             _logReporter.OnSessionPaused(this);
         }
 
         // возобновление
         public void Resume()
         {
-            State = SessionState.Running;
-            IsPaused = false;
-            _pauseEvent.Set(); // продолжение
+            _controller.Resume();
             _logReporter.OnSessionResumed(this);
         }
 
         // блокировка внутри копирования (ожидание, если пауза)
         public void WaitIfPaused()
         {
-            _pauseEvent.Wait();
-            if (_cts?.Token.IsCancellationRequested ?? false)
-                _cts.Token.ThrowIfCancellationRequested();
+            _controller.WaitIfPaused();
         }
 
         // отмена
         public void Cancel()
         {
-            State = SessionState.Completed; // ⬅️ тут может путаница: Completed vs Cancelled
-            IsCancelled = true;
-            _cts?.Cancel();
+            _controller.Cancel();
             _logReporter.OnSessionCancelled(this);
         }
 
@@ -221,8 +188,7 @@ namespace UnityCommander.Copying.Sessions
         // завершение всей сессии
         public void Complete()
         {
-            State = SessionState.Cancelled;
-            IsRunning = false;
+            _controller.Complete();
             _reporter.OnSessionCompleted(this);
             _logReporter.OnSessionCompleted(this);
         }

@@ -20,8 +20,9 @@ namespace UnityCommander.Copying.Sessions
 
         public CopySessionService CreateSession(string source, string target)
         {
-            var session = new CopySessionService(source, target, _reporter, _logReporter);
-            session.StateChanged += (s, state) => CurrentSessionStateChanged?.Invoke(s, state);
+            var cotroller = new CopySessionController();
+            var session = new CopySessionService(source, target, cotroller, _reporter, _logReporter);
+            cotroller.StateChanged += (s, state) => CurrentSessionStateChanged?.Invoke(s, state);
             _sessions.Add(session);
             CurrentSession = session;
             return session;
