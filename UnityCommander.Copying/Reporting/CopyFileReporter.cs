@@ -5,14 +5,14 @@ using UnityCommander.Copying.Sessions;
 
 namespace UnityCommander.Copying.Reporting
 {
-    public class CopyFileReporter : ICopyFileReporter
+    public class CopyFileReporter : ICopyReporter
     {
         private readonly ObservableCollection<FileCopyItem> _files = new();
         public ReadOnlyObservableCollection<FileCopyItem> Files { get; }
         private readonly Dictionary<string, FileCopyItem> _fileMap = new(); // быстрый доступ
         private readonly Action<Action> _invokeOnUI;
 
-        public event Action<CopySessionService>? SessionCompleted;
+        public event Action<CopySession>? SessionCompleted;
 
         public CopyFileReporter(Action<Action> invokeOnUI)
         {
@@ -22,7 +22,7 @@ namespace UnityCommander.Copying.Reporting
 
         private void RunOnUI(Action action) => _invokeOnUI(action);
 
-        public void OnFileStarted(CopySessionService session, string source, string destination, long size, string category)
+        public void OnFileStarted(CopySession session, string source, string destination, long size)
         {
             var item = new FileCopyItem(source, destination)
             {
@@ -38,7 +38,7 @@ namespace UnityCommander.Copying.Reporting
             });
         }
 
-        public void OnFileProgress(CopySessionService session, string source, long bytesCopied, long totalBytes)
+        public void OnFileProgress(CopySession session, string source, long bytesCopied, long totalBytes)
         {
             if (_fileMap.TryGetValue(source, out var item))
             {
@@ -57,7 +57,7 @@ namespace UnityCommander.Copying.Reporting
         }
 
 
-        public void OnFileCompleted(CopySessionService session, string source, string destination, bool success)
+        public void OnFileCompleted(CopySession session, string source, string destination, bool success)
         {
             if (_fileMap.TryGetValue(source, out var item))
             {
@@ -69,14 +69,34 @@ namespace UnityCommander.Copying.Reporting
             }
         }
 
-        public void OnSessionCompleted(CopySessionService session)
+        public void OnSessionStarted(CopySession session)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void OnSessionCompleted(CopySession session)
         {
             RunOnUI(() => SessionCompleted?.Invoke(session));
         }
 
-        public void OnFileCategorized(CopySessionService session, string source, string category)
+        public void OnFileCategorized(CopySession session, string source, string category)
         {
             //_reporter.OnFileCategorized(session, source, category);
+        }
+
+        public void OnSessionPaused(CopySession session)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void OnSessionResumed(CopySession session)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void OnSessionCancelled(CopySession session)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -1,0 +1,96 @@
+﻿<UserControl
+    x:Class="Svetokop.Views.LogView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:behaviors="clr-namespace:Svetokop.Behaviors"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:Svetokop.Views"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:service="clr-namespace:Svetokop.Services"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    mc:Ignorable="d">
+    <DockPanel Margin="5">
+        <!--  Фильтр  -->
+        <ComboBox
+            Width="150"
+            Height="30"
+            Margin="0,2,2,5"
+            HorizontalAlignment="Left"
+            DockPanel.Dock="Top"
+            SelectedIndex="0"
+            SelectedValue="{Binding FilterLevel, Mode=TwoWay}"
+            SelectedValuePath="Tag">
+            <ComboBox.Items>
+                <ComboBoxItem Content="Все" Tag="{x:Null}" />
+                <ComboBoxItem Content="Информация" Tag="{x:Static service:CopyLogType.Info}" />
+                <ComboBoxItem Content="Предупреждение" Tag="{x:Static service:CopyLogType.Warning}" />
+            </ComboBox.Items>
+        </ComboBox>
+
+        <!--  Журнал  -->
+        <ScrollViewer Name="ScrollViewer" VerticalScrollBarVisibility="Auto">
+            <ListView
+                x:Name="LogListView"
+                behaviors:ListViewSelectedItemsBehavior.SelectedItems="{Binding SelectedLogEntries}"
+                ItemsSource="{Binding LogView}"
+                SelectionMode="Extended">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Message}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="Black" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Type}" Value="{x:Static service:CopyLogType.Info}">
+                                            <Setter Property="Foreground" Value="#4CAF50" />
+                                            <!--  Мягкий зелёный  -->
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Type}" Value="{x:Static service:CopyLogType.Warning}">
+                                            <Setter Property="Foreground" Value="#FFC107" />
+                                            <!--  Тёплый янтарный  -->
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Type}" Value="{x:Static service:CopyLogType.Error}">
+                                            <Setter Property="Foreground" Value="#F44336" />
+                                            <!--  Приглушённый красный  -->
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Type}" Value="{x:Static service:CopyLogType.FileCompleted}">
+                                            <Setter Property="Foreground" Value="#9E9E9E" />
+                                            <!--  Нейтральный серый  -->
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Type}" Value="{x:Static service:CopyLogType.FileProgress}">
+                                            <Setter Property="Foreground" Value="#03A9F4" />
+                                            <!--  Спокойный голубой  -->
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Type}" Value="{x:Static service:CopyLogType.FileStarted}">
+                                            <Setter Property="Foreground" Value="#29B6F6" />
+                                            <!--  Чуть ярче голубой  -->
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Type}" Value="{x:Static service:CopyLogType.Paused}">
+                                            <Setter Property="Foreground" Value="#0288D1" />
+                                            <!--  Приглушённый синий  -->
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Type}" Value="{x:Static service:CopyLogType.Cancelled}">
+                                            <Setter Property="Foreground" Value="#E53935" />
+                                            <!--  Красный, но не кислотный  -->
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Type}" Value="{x:Static service:CopyLogType.Resumed}">
+                                            <Setter Property="Foreground" Value="#0288D1" />
+                                            <!--  Такой же как Paused  -->
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                            <TextBlock.InputBindings>
+                                <MouseBinding
+                                    Command="{Binding DataContext.CopyToClipboardCommand, ElementName=LogListView}"
+                                    CommandParameter="{Binding SelectedItems, ElementName=LogListView}"
+                                    Gesture="RightClick" />
+                            </TextBlock.InputBindings>
+                        </TextBlock>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

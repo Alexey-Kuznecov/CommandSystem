@@ -4,28 +4,58 @@ using UnityCommander.Copying.Settings;
 
 namespace UnityCommander.Copying.Sessions
 {
-    public interface ICopySession
+    public class CopySession
     {
-        CopyOptions Options { get; }
-        bool IsRunning { get; }
-        bool IsPaused { get; }
-        bool IsCancelled { get; }
+        public Guid Id { get; } = Guid.NewGuid();
 
-        long BytesCopied { get; }
-        int FilesCopied { get; }
-        int TotalFiles { get; }
-        long TotalBytes { get; }
+        public string SourcePath { get; }
+        public string TargetPath { get; }
 
-        IReadOnlyList<FileCopyErrorContext> Errors { get; }
-        IReadOnlyList<FileCopySuccessContext> Successes { get; }
+        public CopyOptions Options { get; }
 
-        void Start(long totalBytes, int totalFiles);
-        void Pause();
-        void Resume();
-        void Cancel();
-        void AddBytes(long bytes);
-        void CompleteFile();
-        void AddError(FileCopyErrorContext context);
-        void AddSuccess(FileCopySuccessContext context);
+        public SessionState State { get; internal set; } = SessionState.Idle;
+
+        public long BytesCopied { get; internal set; }
+        public long TotalBytes { get; internal set; }
+
+        public int FilesCopied { get; internal set; }
+        public int TotalFiles { get; internal set; }
+
+        public IReadOnlyList<FileCopyErrorContext> Errors => _errors;
+        public IReadOnlyList<FileCopySuccessContext> Successes => _successes;
+
+        public DateTime StartTime { get; internal set; }
+        public DateTime? EndTime { get; internal set; }
+
+        private readonly List<FileCopyErrorContext> _errors = new();
+        private readonly List<FileCopySuccessContext> _successes = new();
+
+        public CopySession(string source, string destination)
+        {
+            SourcePath = source ?? throw new ArgumentNullException(nameof(source));
+            TargetPath = destination ?? throw new ArgumentNullException(nameof(destination));
+        }
+
+        internal void AddError(FileCopyErrorContext error) => _errors.Add(error);
+        internal void AddSuccess(FileCopySuccessContext success) => _successes.Add(success);
+
+        private readonly Dictionary<string, FileCopyItem> _files = new(StringComparer.OrdinalIgnoreCase);
+
+        internal void AddFile(FileCopyItem item)
+        {
+            if (item == null)
+                throw new ArgumentNullException(nameof(item));
+
+            // перезаписываем, если уже есть такой source
+            _files[item.Source] = item;
+        }
+
+        internal FileCopyItem GetFile(string source)
+        {
+            if (string.IsNullOrWhiteSpace(source))
+                throw new ArgumentException("Source path cannot be null or empty.", nameof(source));
+
+            return _files.TryGetValue(source, out var item) ? item : null;
+        }
     }
 }

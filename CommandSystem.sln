@@ -34,7 +34,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommandSystem.CopyTester", "CommandSystem.CopyTester\CommandSystem.CopyTester.csproj", "{E05DD611-E436-48B5-810D-922855F1EFE0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Svetokop", "..\Svetokop\Svetokop.csproj", "{94491793-4905-456A-AD4F-A9F4D5047012}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Svetokop", "Svetokop\Svetokop.csproj", "{21B72E8B-5CEB-D70A-26AA-EC07D2418A03}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -94,10 +94,10 @@ Global
 		{E05DD611-E436-48B5-810D-922855F1EFE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E05DD611-E436-48B5-810D-922855F1EFE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E05DD611-E436-48B5-810D-922855F1EFE0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{94491793-4905-456A-AD4F-A9F4D5047012}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{94491793-4905-456A-AD4F-A9F4D5047012}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{94491793-4905-456A-AD4F-A9F4D5047012}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{94491793-4905-456A-AD4F-A9F4D5047012}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21B72E8B-5CEB-D70A-26AA-EC07D2418A03}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21B72E8B-5CEB-D70A-26AA-EC07D2418A03}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21B72E8B-5CEB-D70A-26AA-EC07D2418A03}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21B72E8B-5CEB-D70A-26AA-EC07D2418A03}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

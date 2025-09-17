@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace UnityCommander.Copying.Sessions
 {
-    public interface ICopySessionService
+    public interface ICopySession
     {
         public void Pause();
         public void Resume();

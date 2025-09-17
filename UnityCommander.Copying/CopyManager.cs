@@ -29,7 +29,6 @@ namespace UnityCommander.Copying
         private readonly IFileCopyPlanner _fileCopyPlanner;
         private readonly IProgressTracker _progressTracker;
         private readonly IProgressReporter _progressReporter;
-        private readonly ICopyFileReporter _copyFileReporter;
         private readonly IFileCategorizer _categorizer;
         private readonly ICopyErrorHandler? _errorHandler;
         private readonly ICopySuccessHandler? _successHandler;
@@ -46,7 +45,6 @@ namespace UnityCommander.Copying
             IFileCopyPlanner fileCopyPlanner,
             IProgressTracker progressTracker,
             IProgressReporter progressReporter,
-            ICopyFileReporter copyFileReporter,
             IFileCategorizer smartCategorizer,
             IConsoleOutput? consoleOutput = null,
             ICopyErrorHandler? errorHandler = null,
@@ -57,7 +55,6 @@ namespace UnityCommander.Copying
             _fileCopyPlanner = fileCopyPlanner ?? throw new ArgumentNullException(nameof(fileCopyPlanner));
             _progressTracker = progressTracker ?? throw new ArgumentNullException(nameof(progressTracker));
             _progressReporter = progressReporter ?? throw new ArgumentNullException(nameof(progressReporter));
-            _copyFileReporter = copyFileReporter;
             _categorizer = smartCategorizer;
             _consoleOutput = consoleOutput ?? new NullConsoleOutput();
             _errorHandler = errorHandler;
@@ -143,8 +140,8 @@ namespace UnityCommander.Copying
                         }
 
                         // Обновляем totals на лету
-                        session.AddToTotalFiles(1);
-                        session.AddToTotalBytes(item.FileSize);
+                        //session.AddToTotalFiles(1);
+                        //session.AddToTotalBytes(item.FileSize);
                         _progressTracker.IncrementTotalBytes(item.FileSize); // если у тебя такой метод в трекере; если нет — можно добавить
 
                         // Пишем в канал
@@ -239,8 +236,9 @@ namespace UnityCommander.Copying
 
             // Если отключена многопоточность, используем только один поток
             int concurrency = options.UseMultiThreading ? maxConcurrentTasks : 1;
+            var target = session.CurrentSession.TargetPath;
             using var semaphore = new SemaphoreSlim(concurrency);
-            _metrics?.PrepareAllFilesCopy(session.SourcePath, session.TargetPath, options.UseMetrics);
+            _metrics?.PrepareAllFilesCopy(session.CurrentSession.SourcePath, session.CurrentSession.TargetPath, options.UseMetrics);
             var tasks = files.Select(file => Task.Run(async () =>
             {
                 try
@@ -249,7 +247,7 @@ namespace UnityCommander.Copying
                     
                     try
                     {
-                        await CopySingleFileAsync(file, session.TargetPath, session, options, cancellationToken);
+                        await CopySingleFileAsync(file, target, session, options, cancellationToken);
                     }
                     finally
                     {
@@ -267,7 +265,7 @@ namespace UnityCommander.Copying
                 {
                     session.UpdateFileStatus(file.Source, FileCopyStatus.Failed);
                     _metrics?.OnError(file.Source, ex);
-                    _copylogger.LogCopyError(file.Source, Path.Combine(session.TargetPath, Path.GetFileName(file.Source)), ex);
+                    _copylogger.LogCopyError(file.Source, Path.Combine(session.CurrentSession.TargetPath, Path.GetFileName(file.Source)), ex);
                 }
 
             }, cancellationToken)).ToArray();
@@ -284,7 +282,8 @@ namespace UnityCommander.Copying
             CancellationToken cancellationToken)
         {
             string destinationFile = file.Destination;
-            session.OnFileStarted(file.Source, destinationFile, file.FileSize, "Default");
+            //session.OnFileStarted(file.Source, destinationFile, file.FileSize);
+            Debug.WriteLine("[CopySingleFileAsync] StartFile");
             _progressTracker.StartFile(file.Source, new FileInfo(file.Source).Length);
             // Запускаем секундомер для измерения времени копирования одного файла
             var stopwatch = Stopwatch.StartNew();
@@ -296,21 +295,23 @@ namespace UnityCommander.Copying
                 bufferSize,
                 bytesCopied =>
                 {
-                    session.WaitIfPaused();
+                    session.Controller.WaitIfPaused();
                     cancellationToken.ThrowIfCancellationRequested();
                     _progressTracker.UpdateProgress(bytesCopied);
-                    session.UpdateFileProgress(file.Source, bytesCopied);
-                    _progressReporter.Report(_progressTracker.GetProgressInfo());
+                    //session.UpdateFileProgress(file.Source, bytesCopied);
+                    var info = _progressTracker.GetProgressInfo();
+                    _progressReporter.Report(info);
                     //Debug.WriteLine($"CurrentFilePath={_progressTracker.GetProgressInfo().CurrentFilePath}, Bytes={_progressTracker.GetProgressInfo().CurrentFileCopiedBytes}");
                 },
                 cancellationToken,
-                session.WaitIfPaused);
+                session.Controller.WaitIfPaused);
             // Останавливаем секундомер — завершение измерения времени
             stopwatch.Stop();
             // Уведомляем систему метрик о завершении копирования: путь, размер, затраченное время
             _metrics?.OnFileCopyCompleted(file.Source, destinationFile, file.FileSize, stopwatch.Elapsed);
             _progressTracker.CompleteFile();
-            session.UpdateFileStatus(file.Source, FileCopyStatus.Completed);
+            Debug.WriteLine("[CopySingleFileAsync] CompleteFile called");
+            //session.UpdateFileStatus(file.Source, FileCopyStatus.Completed);
         }
 
         private int GetBufferSize(string sourcePath, CopyOptions options)
