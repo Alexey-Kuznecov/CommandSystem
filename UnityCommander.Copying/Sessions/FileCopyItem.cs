@@ -6,15 +6,19 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace UnityCommander.Copying.Sessions
 {
     public enum FileCopyStatus
     {
-        Pending,
-        InProgress,
-        Completed,
-        Failed
+        Pending,       // Файл ожидает в очереди
+        InProgress,    // Копирование идёт
+        Paused,        // Копирование приостановлено
+        Completed,     // Успешно завершено
+        Failed,        // Ошибка при копировании
+        Skipped,       // Пропущен (по фильтру, пользователем или из-за конфликта)
+        Cancelled      // Отменён пользователем или системой
     }
 
     public class FileCopyItem : INotifyPropertyChanged
@@ -22,7 +26,10 @@ namespace UnityCommander.Copying.Sessions
         private int _progress;
         private string _bytesCopiedText = string.Empty;
         private string _fileSizeText = string.Empty;
+        private string _progressText = string.Empty;
+        private string _fileName = string.Empty;
         private FileCopyStatus _status;
+        
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
@@ -52,6 +59,12 @@ namespace UnityCommander.Copying.Sessions
             set { _bytesCopiedText = value; OnPropertyChanged(); }
         }
 
+        public string ProgressText
+        {
+            get => _progressText;
+            set { _progressText = value; OnPropertyChanged(); }
+        }
+
         public int Progress
         {
             get => _progress;
@@ -62,6 +75,12 @@ namespace UnityCommander.Copying.Sessions
         {
             get => _status;
             set { _status = value; OnPropertyChanged(); }
+        }
+
+        public string FileName
+        {
+            get => _fileName;
+            set { _fileName = value; OnPropertyChanged(); }
         }
     }
 }

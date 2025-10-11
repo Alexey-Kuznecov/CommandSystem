@@ -1,26 +1,38 @@
 ﻿
 using AlexeyKuznetsov.Helper;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Windows;
+using System.Windows.Threading;
+using UnityCommander.Copying.Reporting;
 using UnityCommander.Copying.Sessions;
 
-namespace UnityCommander.Copying.Reporting
+namespace Svetokop.Services
 {
-    public class CopyFileReporter : ICopyReporter
+    public class CopyFileReporter2 : ICopyReporter
     {
         private readonly ObservableCollection<FileCopyItem> _files = new();
         public ReadOnlyObservableCollection<FileCopyItem> Files { get; }
+
+        public event Action? FilesChanged; // новое событие
         private readonly Dictionary<string, FileCopyItem> _fileMap = new(); // быстрый доступ
-        private readonly Action<Action> _invokeOnUI;
+        private readonly Dispatcher _dispatcher;
 
         public event Action<CopySession>? SessionCompleted;
 
-        public CopyFileReporter(Action<Action> invokeOnUI)
+        public CopyFileReporter2()
         {
             Files = new ReadOnlyObservableCollection<FileCopyItem>(_files);
-            _invokeOnUI = invokeOnUI ?? (a => a()); // по умолчанию просто выполняем
+            _dispatcher = Application.Current.Dispatcher;
         }
 
-        private void RunOnUI(Action action) => _invokeOnUI(action);
+        private void RunOnUI(Action action)
+        {
+            if (_dispatcher.CheckAccess())
+                action();
+            else
+                _dispatcher.Invoke(action);
+        }
 
         public void OnFileStarted(CopySession session, string source, string destination, long size)
         {
@@ -35,6 +47,7 @@ namespace UnityCommander.Copying.Reporting
             {
                 _files.Add(item);
                 _fileMap[source] = item;
+                FilesChanged?.Invoke();
             });
         }
 
@@ -54,10 +67,10 @@ namespace UnityCommander.Copying.Reporting
                     item.FileSizeText = FastBytesFarmater.FormatSize(item.Size);
                     item.BytesCopiedText = FastBytesFarmater.FormatSize(item.BytesCopied);
                     item.Status = FileCopyStatus.InProgress;
+                    FilesChanged?.Invoke();
                 });
             }
         }
-
 
         public void OnFileCompleted(CopySession session, string source, string destination, bool success)
         {
@@ -67,13 +80,14 @@ namespace UnityCommander.Copying.Reporting
                 {
                     item.Status = success ? FileCopyStatus.Completed : FileCopyStatus.Failed;
                     item.BytesCopied = item.Size;
+                    FilesChanged?.Invoke();
                 });
             }
         }
 
         public void OnSessionStarted(CopySession session)
         {
-            throw new NotImplementedException();
+            // Можно добавить логику, если нужно
         }
 
         public void OnSessionCompleted(CopySession session)
@@ -83,22 +97,11 @@ namespace UnityCommander.Copying.Reporting
 
         public void OnFileCategorized(CopySession session, string source, string category)
         {
-            //_reporter.OnFileCategorized(session, source, category);
+            // Пока не реализовано
         }
 
-        public void OnSessionPaused(CopySession session)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void OnSessionResumed(CopySession session)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void OnSessionCancelled(CopySession session)
-        {
-            throw new NotImplementedException();
-        }
+        public void OnSessionPaused(CopySession session) { }
+        public void OnSessionResumed(CopySession session) { }
+        public void OnSessionCancelled(CopySession session) { }
     }
 }

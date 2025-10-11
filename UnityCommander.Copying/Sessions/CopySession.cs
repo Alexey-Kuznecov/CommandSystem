@@ -6,29 +6,23 @@ namespace UnityCommander.Copying.Sessions
 {
     public class CopySession
     {
-        public Guid Id { get; } = Guid.NewGuid();
-
-        public string SourcePath { get; }
-        public string TargetPath { get; }
-
-        public CopyOptions Options { get; }
-
-        public SessionState State { get; internal set; } = SessionState.Idle;
-
-        public long BytesCopied { get; internal set; }
-        public long TotalBytes { get; internal set; }
-
-        public int FilesCopied { get; internal set; }
-        public int TotalFiles { get; internal set; }
-
-        public IReadOnlyList<FileCopyErrorContext> Errors => _errors;
-        public IReadOnlyList<FileCopySuccessContext> Successes => _successes;
-
-        public DateTime StartTime { get; internal set; }
-        public DateTime? EndTime { get; internal set; }
-
+        private readonly Dictionary<string, FileCopyItem> _files = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<FileCopyErrorContext> _errors = new();
         private readonly List<FileCopySuccessContext> _successes = new();
+        public IReadOnlyList<FileCopyErrorContext> Errors => _errors;
+        public IReadOnlyList<FileCopySuccessContext> Successes => _successes;
+        public Guid Id { get; } = Guid.NewGuid();
+        public string SourcePath { get; }
+        public string TargetPath { get; }
+        public CopyOptions Options { get; }
+        public SessionState State { get; internal set; } = SessionState.Idle;
+        public long BytesCopied { get; internal set; }
+        public long TotalBytes { get; internal set; }
+        public int FilesCopied { get; internal set; }
+        public int TotalFiles { get; internal set; }
+        public DateTime StartTime { get; internal set; }
+        public DateTime? EndTime { get; internal set; }
+        public int ProgressStep { get; set; } = 15; // шаг прогресса в процентах (1% по умолчанию)
 
         public CopySession(string source, string destination)
         {
@@ -39,7 +33,7 @@ namespace UnityCommander.Copying.Sessions
         internal void AddError(FileCopyErrorContext error) => _errors.Add(error);
         internal void AddSuccess(FileCopySuccessContext success) => _successes.Add(success);
 
-        private readonly Dictionary<string, FileCopyItem> _files = new(StringComparer.OrdinalIgnoreCase);
+        
 
         internal void AddFile(FileCopyItem item)
         {

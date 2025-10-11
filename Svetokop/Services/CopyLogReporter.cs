@@ -3,21 +3,29 @@ using UnityCommander.Copying.Sessions;
 using UnityCommander.Copying.Reporting;
 using System.Windows;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.IO;
-using UnityCommander.SystemMetrics;
 
 namespace Svetokop.Services
 {
     public class CopyLogReporter : ICopyReporter
     {
-        private readonly ObservableCollection<CopyLogEntry> _entries = new();
-        public ReadOnlyObservableCollection<CopyLogEntry> Entries => new(_entries);
         private readonly TimeSpan _minFileDuration = TimeSpan.FromSeconds(3); // минимальное время для логирования
         private readonly Dictionary<string, (long lastBytes, DateTime lastTime)> _fileSpeedData = new();
 
         private int _progressCounter;
         private long _totalBytes;
+        private long _bytesCopied;
+        private DateTime _startTime;
+        private DateTime _endTime;
+        private readonly ObservableCollection<CopyLogEntry> _entries = new();
+        private readonly ReadOnlyObservableCollection<CopyLogEntry> _readonlyEntries;
+        public ReadOnlyObservableCollection<CopyLogEntry> Entries => _readonlyEntries;
+
+        public CopyLogReporter()
+        {
+            _readonlyEntries = new ReadOnlyObservableCollection<CopyLogEntry>(_entries);
+        }
+
         private void AddEntryInternal(
             CopySession session,
             CopyLogType type,
@@ -30,19 +38,18 @@ namespace Svetokop.Services
             //if (verboseOnly && !session.VerboseLogging)
             //    return;
 
-            // Фильтр по длительности файла
             if (fileDuration.HasValue && fileDuration.Value < _minFileDuration)
                 return;
 
             var entry = new CopyLogEntry
             {
                 Type = type,
-                Timestamp = DateTime.Now, // момент записи в журнал
+                Timestamp = DateTime.Now,
                 Message = message,
                 Metadata = ex
             };
 
-            Application.Current?.Dispatcher.Invoke(() => _entries.Add(entry));
+            Application.Current?.Dispatcher.BeginInvoke(() => _entries.Add(entry));
         }
 
         public void Clear() => _entries.Clear();
@@ -55,6 +62,8 @@ namespace Svetokop.Services
         public void OnFileStarted(CopySession session, string filePath, string destination, long size) 
         {
             _fileSpeedData[filePath] = (0, DateTime.Now);
+            _bytesCopied = 0;
+            _startTime = DateTime.Now;
             AddEntryInternal(session, 
                 CopyLogType.FileStarted,
                 $"{DateTime.Now} {Messages.FileStarted} {filePath}",
@@ -64,35 +73,58 @@ namespace Svetokop.Services
 
         public void OnFileProgress(CopySession session, string filePath, long bytesCopied, long totalBytes)
         {
+            _bytesCopied += bytesCopied;
             _progressCounter++;
-            //if (_progressCounter % session.ProgressStep != 0)
-            //    return;
+            if (_progressCounter % session.ProgressStep != 0)
+                return;
 
+            // Вычисляем скорость копирования
             var now = DateTime.Now;
             var last = _fileSpeedData[filePath];
-            var deltaBytes = bytesCopied - last.lastBytes;
+            var deltaBytes = _bytesCopied - last.lastBytes;
             var deltaSeconds = (now - last.lastTime).TotalSeconds;
             var speed = deltaSeconds > 0 ? deltaBytes / deltaSeconds : 0; // байт/сек
 
             // Обновляем запись
-            _fileSpeedData[filePath] = (bytesCopied, now);
+            _fileSpeedData[filePath] = (_bytesCopied, now);
 
             // Переводим в MB/s
             var speedMb = speed / 1024d / 1024d;
 
-            double copiedMb = bytesCopied / 1024d / 1024d;
+            double copiedMb = _bytesCopied / 1024d / 1024d;
             double totalMb = totalBytes / 1024d / 1024d;
-            double percent = totalBytes > 0 ? (bytesCopied * 100.0 / totalBytes) : 0;
-
-            //// Вычисляем скорость копирования в MB/s
-            //double speedMbPerSec = elapsed.TotalSeconds > 0
-            //    ? copiedMb / elapsed.TotalSeconds
-            //    : 0;
+            double percent = totalBytes > 0 ? (_bytesCopied * 100.0 / totalBytes) : 0;
 
             AddEntryInternal(session, CopyLogType.FileProgress,
                 $"🔄 File: {Path.GetFileName(filePath)} | {copiedMb:F2} MB / {totalMb:F2} MB ({percent:F1}%) | Speed: {speedMb:F2} MB/s",
                 filePath,
                 verboseOnly: true);
+        }
+
+
+        public void OnFileCompleted(CopySession session, string source, string destination, bool success)
+        {
+            //var finishTime = (endTime != default ? endTime : DateTime.Now);
+            var elapsed = DateTime.Now - _startTime;
+
+            // показываем миллисекунды для маленьких файлов
+            string duration = elapsed.TotalSeconds < 1
+                ? $"{elapsed.TotalMilliseconds:F0} ms"
+                : elapsed.ToString(@"mm\:ss");
+
+            string fileName = Path.GetFileName(source);
+
+            if (success)
+            {
+                AddEntryInternal(session, CopyLogType.FileCompleted,
+                    $"✅ Completed | File: {fileName} | Duration: {duration}");
+            }
+            else
+            {
+                AddEntryInternal(session, CopyLogType.FileCompleted,
+                    $"⚠️ Failed | File: {fileName} | Duration: {duration}",
+                    verboseOnly: true);
+            }
         }
 
         public void OnFileCompleted(CopySession session, string filePath, DateTime startTime, DateTime endTime, bool success)
@@ -157,11 +189,6 @@ namespace Svetokop.Services
                 $"Скопировано файлов: {session.FilesCopied}/{session.TotalFiles}, " +
                 $"Общий объём: {session.BytesCopied / 1024d / 1024d:F2} MB");
             _progressCounter = 0;
-        }
-
-        public void OnFileCompleted(CopySession session, string source, string destination, bool success)
-        {
-            //throw new NotImplementedException();
         }
 
         public void OnFileCategorized(CopySession session, string source, string category)

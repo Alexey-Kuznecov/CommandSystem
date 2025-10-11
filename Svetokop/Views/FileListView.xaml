@@ -39,17 +39,57 @@
 
             <!--  DataGrid с файлами  -->
             <DataGrid
+                AlternatingRowBackground="#F9F9F9"
                 AutoGenerateColumns="False"
+                BorderBrush="#CCC"
+                BorderThickness="1"
+                CanUserReorderColumns="False"
+                CanUserResizeColumns="True"
+                CanUserResizeRows="False"
+                ColumnHeaderHeight="35"
+                FontFamily="Segoe UI"
+                FontSize="14"
+                GridLinesVisibility="None"
+                HeadersVisibility="Column"
+                HorizontalGridLinesBrush="#DDD"
                 IsReadOnly="True"
-                ItemsSource="{Binding FilesView}">
+                ItemsSource="{Binding FilteredFiles}"
+                RowBackground="White"
+                RowHeight="30"
+                SelectionMode="Single"
+                SelectionUnit="FullRow"
+                VerticalGridLinesBrush="#DDD">
+                <DataGrid.Resources>
+                    <!--  Подсветка при наведении  -->
+                    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#FFBEE6FD" />
+                    <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#FFDDDDDD" />
+                </DataGrid.Resources>
+
                 <DataGrid.Columns>
-                    <DataGridTextColumn Binding="{Binding Name}" Header="Имя" />
-                    <DataGridTextColumn Binding="{Binding Source}" Header="Путь" />
-                    <DataGridTextColumn Binding="{Binding FileSizeText}" Header="Размер" />
-                    <DataGridTextColumn Binding="{Binding BytesCopiedText}" Header="Скопированно" />
-                    <DataGridTextColumn Binding="{Binding Progress}" Header="Прогресс" />
-                    <DataGridTextColumn Binding="{Binding Status}" Header="Статус" />
-                    <!--<DataGridTextColumn Binding="{Binding ErrorMessage}" Header="Ошибка" />-->
+                    <DataGridTextColumn
+                        Width="*"
+                        Binding="{Binding FileName}"
+                        Header="Имя" />
+                    <DataGridTextColumn
+                        Width="2*"
+                        Binding="{Binding Source}"
+                        Header="Путь" />
+                    <DataGridTextColumn
+                        Width="Auto"
+                        Binding="{Binding BytesCopiedText}"
+                        Header="Скопированно" />
+                    <DataGridTextColumn
+                        Width="Auto"
+                        Binding="{Binding FileSizeText}"
+                        Header="Размер" />
+                    <DataGridTextColumn
+                        Width="Auto"
+                        Binding="{Binding ProgressText}"
+                        Header="Прогресс" />
+                    <DataGridTextColumn
+                        Width="Auto"
+                        Binding="{Binding Status}"
+                        Header="Статус" />
                 </DataGrid.Columns>
             </DataGrid>
         </DockPanel>

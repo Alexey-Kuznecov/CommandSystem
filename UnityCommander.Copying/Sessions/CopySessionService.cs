@@ -79,19 +79,20 @@ namespace UnityCommander.Copying.Sessions
             _session.AddFile(item);
 
             _uiReporter.OnFileStarted(_session, source, destination, size);
+            _logReporter.OnFileStarted(_session, source, destination, size); // <-- добавь это
         }
 
         public void UpdateFileProgress(string source, long bytesCopied)
         {
             var item = _session.GetFile(source);
             if (item == null) return;
-
+            _session.BytesCopied += bytesCopied;
             item.BytesCopied = bytesCopied;
             item.Status = FileCopyStatus.InProgress;
 
             var elapsed = DateTime.Now - item.StartTime;
-            _logReporter.OnFileProgress(_session, source, item.BytesCopied, item.Size);
             _uiReporter.OnFileProgress(_session, source, item.BytesCopied, item.Size);
+            _logReporter.OnFileProgress(_session, source, item.BytesCopied, item.Size); 
         }
 
         public void UpdateFileStatus(string source, FileCopyStatus status)
@@ -118,5 +119,15 @@ namespace UnityCommander.Copying.Sessions
 
         private void TryDeleteFile(string path, int attempts = 3) { /* твоя реализация */ }
         private void TryDeleteDirectory(string path, int attempts = 3) { /* твоя реализация */ }
+
+        internal void AddToTotalFiles(int v)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void AddToTotalBytes(long fileSize)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

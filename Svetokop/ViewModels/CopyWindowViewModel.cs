@@ -2,7 +2,6 @@
 using CommandSystem.CopyTester.ViewModels;
 using CommandSystem.Gui.MVVM;
 using Svetokop.Services;
-using System.Windows;
 using UnityCommander.Copying;
 using UnityCommander.Copying.Category;
 using UnityCommander.Copying.Core;
@@ -54,9 +53,10 @@ namespace Svetokop.ViewModels
             ICopyErrorHandler errorHandler = new LoggerCopyErrorHandler(logger);
             ICopySuccessHandler successHandler = new GuiCopySuccessHandler();
             IFileCopyPlanner fileCopyPlanner = new DefaultFileCopyPlanner(categorizer);
-            ICopyReporter fileReporter = new CopyFileReporter(action => Application.Current.Dispatcher.Invoke(action));
+            //ICopyReporter fileReporter = new CopyFileReporter(action => Application.Current.Dispatcher.Invoke(action));
+            ICopyReporter fileReporter = new CopyFileReporter2();
             ICopyReporter logReporter = new CopyLogReporter();
-            ICopyMetricsCollector metrics = new CopyMetricsCollector();
+            ICopyMetricsCollector metrics = new NullCopyMetricsCollector();
             _copySessionManager = new CopySessionManager(fileReporter, logReporter);
             
             // Менеджер копирования (собираем руками)
@@ -101,7 +101,7 @@ namespace Svetokop.ViewModels
                 opts.MaxConсurrentTasks = 5;
                 opts.UseCategories = true;
                 opts.UseMetrics = true;
-                opts.UseDualChannels = false;
+                opts.UseDualChannels = true;
                 // Новое
                 opts.BufferSize = 64 * 1024;
                 opts.MinBufferSize = 8 * 1024;

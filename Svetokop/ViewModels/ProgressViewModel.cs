@@ -159,7 +159,7 @@ namespace Svetokop.ViewModels
         private void SubscribeToProgress()
         {
             _subscription = _copyManager.ProgressStream
-                .Throttle(TimeSpan.FromMilliseconds(10))
+                .Throttle(TimeSpan.FromMilliseconds(1))
                 .ObserveOn(SynchronizationContext.Current!)
                 .Subscribe(UpdateProgress);
         }
