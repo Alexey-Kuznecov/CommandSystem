@@ -17,7 +17,7 @@
 
     <Grid Margin="10">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="500" />
             <!--  Верх: Progress + кнопки  -->
             <RowDefinition Height="*" />
             <!--  Вкладки  -->
@@ -28,11 +28,11 @@
 
         <!--  Нижние вкладки  -->
         <TabControl Grid.Row="1">
-            <TabItem Header="Список файлов">
-                <views:FileListView DataContext="{Binding FileListVM}" />
-            </TabItem>
             <TabItem Header="Настройки">
                 <views:SettingsView DataContext="{Binding SettingsVM}" />
+            </TabItem>
+            <TabItem Header="Список файлов">
+                <views:FileListView DataContext="{Binding FileListVM}" />
             </TabItem>
             <TabItem Header="Журнал">
                 <views:LogView DataContext="{Binding LogVM}" />
@@ -40,9 +40,9 @@
             <TabItem Header="История">
                 <views:HistoryView DataContext="{Binding HistoryVM}" />
             </TabItem>
-            <TabItem Header="METRIC">
+            <!--<TabItem Header="METRIC">
                 <views:MetricView DataContext="{Binding MetricVM}" />
-            </TabItem>
+            </TabItem>-->
         </TabControl>
     </Grid>
 

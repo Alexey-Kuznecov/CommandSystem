@@ -13,6 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="ScottPlot.WPF" Version="5.0.56" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\AlexeyKuznetsov\AlexeyKuznetsov\AlexeyKuznetsov.csproj" />
     <ProjectReference Include="..\CommandSystem.Gui\CommandSystem.Gui.csproj" />
     <ProjectReference Include="..\UnityCommander.Copying\UnityCommander.Copying.csproj" />

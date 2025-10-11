@@ -1,8 +1,10 @@
 ﻿
 using CommandSystem.Gui.MVVM;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Reactive.Linq;
 using System.Windows.Input;
+using System.Windows.Threading;
 using UnityCommander.Copying;
 using UnityCommander.Copying.Core;
 using UnityCommander.Copying.Progress;
@@ -28,6 +30,11 @@ namespace Svetokop.ViewModels
         private string _filesCopiedText = string.Empty;
         private IDisposable? _subscription;
 
+        // --- NEW: buffer + timer + event для View (ScottPlot) ---
+        private readonly ConcurrentQueue<double> _speedBuffer = new();
+        private readonly DispatcherTimer _chartTimer;
+        public event Action<double>? SpeedSampleAvailable;
+
         public event Func<Task>? StartRequested = null;
 
         public ProgressViewModel(CopyManager copyManager, CopySessionManager copySessionManager)
@@ -45,6 +52,11 @@ namespace Svetokop.ViewModels
 
             // Подписка на изменение состояния сессии
             _sessionManager.CurrentSessionStateChanged += (s, state) => State = state;
+
+            // Таймер для выброса усреднённой точки для графика (пример: 10 Hz)
+            _chartTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+            _chartTimer.Tick += (_, __) => EmitSpeedSample();
+            _chartTimer.Start();
         }
 
         #region Dependency Properties
@@ -149,11 +161,37 @@ namespace Svetokop.ViewModels
             TotalProgress = (int)Math.Round(info.CompletionPercentage);
             TotalProgressText = info.TotalProgressText;
 
-            CurrentSpeed = $"{info.SpeedBytesPerSecond / 1024.0 / 1024.0:F2} MB/s";
+            var speedMb = info.SpeedBytesPerSecond / 1024.0 / 1024.0;
+            CurrentSpeed = $"{speedMb:F2} MB/s";
+
+            // добавляем в буфер для графика
+            //_speedBuffer.Enqueue(speedMb);
+            SpeedSampleAvailable?.Invoke(info.SpeedBytesPerSecond / 1024.0 / 1024.0);
+
+
             TimeRemaining = _humanCalculator.GetDisplayValue(info.EstimatedTimeRemaining, DateTime.Now)
                 .ToString(@"hh\:mm\:ss");
             FilesCopiedText = $"{info.FilesCopied} / {info.TotalFiles} files";
             TotalCopiedText = $"{info.BytesCopied / 1024.0 / 1024.0:F2} MB of {info.TotalBytes / 1024.0 / 1024.0:F2} MB";
+        }
+
+        // --- NEW: усреднение и отправка в View ---
+        private void EmitSpeedSample()
+        {
+            // аккуратно вынимаем все значения и считаем среднее
+            if (!_speedBuffer.TryDequeue(out var first))
+                return;
+
+            double sum = first;
+            int count = 1;
+            while (_speedBuffer.TryDequeue(out var v))
+            {
+                sum += v;
+                count++;
+            }
+
+            double avg = sum / count;
+            SpeedSampleAvailable?.Invoke(avg);
         }
 
         private void SubscribeToProgress()

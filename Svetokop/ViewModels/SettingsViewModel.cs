@@ -25,7 +25,7 @@ namespace Svetokop.ViewModels
         public SettingsViewModel()
         {
             SourcePath = "E:\\Projects\\03._Tests\\CopyFileTest\\Source2";
-            DestinationPath = "E:\\Projects\\03._Tests\\CopyFileTest\\Target";
+            DestinationPath = "c:\\Target";
             UseMultiThreading = false;
             MaxConcurrentTasks = 2;
         }
