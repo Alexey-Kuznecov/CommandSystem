@@ -17,13 +17,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommandSystem.CLI", "Comman
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CommandSystem.Commands", "CommandSystem.Commands\CommandSystem.Commands.csproj", "{54F0630D-985F-4B47-8D1B-5523AD905384}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IOCommand", "IOCommand\IOCommand.csproj", "{60BB985B-38BA-46DB-B9BE-500ED8206E58}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnityCommander.Copying", "UnityCommander.Copying\UnityCommander.Copying.csproj", "{EB669D6C-BDC6-49EC-9C48-EBDDCE66289C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AlexeyKuznetsov", "..\AlexeyKuznetsov\AlexeyKuznetsov\AlexeyKuznetsov.csproj", "{20A343F8-DF3A-72C1-3C02-15C924148105}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnityCommander.Native", "..\UC.Native\UnityCommander.Native.csproj", "{04641939-4812-CBAE-06A3-6316F734CD7C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnityCommander.SystemMetrics", "UnityCommander.SystemMetrics\UnityCommander.SystemMetrics.csproj", "{DD86BA1D-BB7E-4380-9BEE-8A622EAEE580}"
 EndProject
@@ -70,10 +66,6 @@ Global
 		{54F0630D-985F-4B47-8D1B-5523AD905384}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{54F0630D-985F-4B47-8D1B-5523AD905384}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{54F0630D-985F-4B47-8D1B-5523AD905384}.Release|Any CPU.Build.0 = Release|Any CPU
-		{60BB985B-38BA-46DB-B9BE-500ED8206E58}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{60BB985B-38BA-46DB-B9BE-500ED8206E58}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{60BB985B-38BA-46DB-B9BE-500ED8206E58}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{60BB985B-38BA-46DB-B9BE-500ED8206E58}.Release|Any CPU.Build.0 = Release|Any CPU
 		{EB669D6C-BDC6-49EC-9C48-EBDDCE66289C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{EB669D6C-BDC6-49EC-9C48-EBDDCE66289C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EB669D6C-BDC6-49EC-9C48-EBDDCE66289C}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -82,10 +74,6 @@ Global
 		{20A343F8-DF3A-72C1-3C02-15C924148105}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{20A343F8-DF3A-72C1-3C02-15C924148105}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{20A343F8-DF3A-72C1-3C02-15C924148105}.Release|Any CPU.Build.0 = Release|Any CPU
-		{04641939-4812-CBAE-06A3-6316F734CD7C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{04641939-4812-CBAE-06A3-6316F734CD7C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{04641939-4812-CBAE-06A3-6316F734CD7C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{04641939-4812-CBAE-06A3-6316F734CD7C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{DD86BA1D-BB7E-4380-9BEE-8A622EAEE580}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DD86BA1D-BB7E-4380-9BEE-8A622EAEE580}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DD86BA1D-BB7E-4380-9BEE-8A622EAEE580}.Release|Any CPU.ActiveCfg = Release|Any CPU

@@ -17,7 +17,8 @@
 
     <Grid Margin="10">
         <Grid.RowDefinitions>
-            <RowDefinition Height="500" />
+            <RowDefinition Height="200" />
+            <RowDefinition Height="150" />
             <!--  Верх: Progress + кнопки  -->
             <RowDefinition Height="*" />
             <!--  Вкладки  -->
@@ -25,14 +26,15 @@
 
         <!--  Верхняя панель прогресса  -->
         <views:ProgressView Grid.Row="0" DataContext="{Binding ProgressVM}" />
-
+        <!--  График скорости  -->
+        <views:SpeedGraph Grid.Row="1" DataContext="{Binding SpeedGraphVM}" />
         <!--  Нижние вкладки  -->
-        <TabControl Grid.Row="1">
-            <TabItem Header="Настройки">
-                <views:SettingsView DataContext="{Binding SettingsVM}" />
-            </TabItem>
+        <TabControl Grid.Row="2">
             <TabItem Header="Список файлов">
                 <views:FileListView DataContext="{Binding FileListVM}" />
+            </TabItem>
+            <TabItem Header="Настройки">
+                <views:SettingsView DataContext="{Binding SettingsVM}" />
             </TabItem>
             <TabItem Header="Журнал">
                 <views:LogView DataContext="{Binding LogVM}" />
@@ -41,8 +43,8 @@
                 <views:HistoryView DataContext="{Binding HistoryVM}" />
             </TabItem>
             <!--<TabItem Header="METRIC">
-                <views:MetricView DataContext="{Binding MetricVM}" />
-            </TabItem>-->
+           <views:MetricView DataContext="{Binding MetricVM}" />
+       </TabItem>-->
         </TabControl>
     </Grid>
 

@@ -44,33 +44,8 @@
                 <TextBlock Width="200" Text="{Binding TimeRemaining}" />
             </StackPanel>
 
-            <!--  График скорости  -->
-            <Border
-                Height="300"
-                Margin="0,5,0,0"
-                BorderBrush="Gray"
-                BorderThickness="1">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-
-                    <TextBlock
-                        Margin="8"
-                        FontSize="16"
-                        FontWeight="Bold"
-                        Text="{Binding CurrentSpeed}" />
-
-                    <ScottPlot:WpfPlot x:Name="SpeedPlot" Grid.Row="1" />
-                </Grid>
-            </Border>
-
             <!--  Информация о текущем файле  -->
-            <TextBlock
-                Margin="0,5,0,0"
-                FontWeight="Bold"
-                Text="Текущий файл:" />
+            <TextBlock FontWeight="Bold" Text="Текущий файл:" />
             <TextBlock Text="{Binding CurrentFileName}" />
             <TextBlock
                 FontSize="12"

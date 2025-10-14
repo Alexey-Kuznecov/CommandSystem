@@ -11,4 +11,8 @@
     <ProjectReference Include="..\CommandSystem.Infrastructure\CommandSystem.Infrastructure.csproj" />
   </ItemGroup>
 
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy /y /d &quot;$(TargetPath)&quot; &quot;$(SolutionDir)..\_builds\&quot;" />
+  </Target>
+
 </Project>

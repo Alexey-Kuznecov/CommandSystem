@@ -29,11 +29,13 @@ namespace Svetokop.ViewModels
         private string _speedText = string.Empty;
         private string _filesCopiedText = string.Empty;
         private IDisposable? _subscription;
+        private bool _totalBytesReported;
 
         // --- NEW: buffer + timer + event для View (ScottPlot) ---
         private readonly ConcurrentQueue<double> _speedBuffer = new();
         private readonly DispatcherTimer _chartTimer;
         public event Action<double>? SpeedSampleAvailable;
+        public event Action<double>? TotalBytesChanged;
 
         public event Func<Task>? StartRequested = null;
 
@@ -164,6 +166,11 @@ namespace Svetokop.ViewModels
             var speedMb = info.SpeedBytesPerSecond / 1024.0 / 1024.0;
             CurrentSpeed = $"{speedMb:F2} MB/s";
 
+            if (_totalBytesReported == false && info.TotalBytes > 0)
+            {
+                TotalBytesChanged?.Invoke(info.TotalBytes);
+                _totalBytesReported = true;
+            }
             // добавляем в буфер для графика
             //_speedBuffer.Enqueue(speedMb);
             SpeedSampleAvailable?.Invoke(info.SpeedBytesPerSecond / 1024.0 / 1024.0);

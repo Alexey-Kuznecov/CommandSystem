@@ -25,6 +25,8 @@ namespace Svetokop.ViewModels
         public LogViewModel LogVM { get; }
         public HistoryViewModel HistoryVM { get; }
         public MetricViewModel MetricVM { get; }
+
+        public SpeedGraphViewModel SpeedGraphVM { get; }
         public CopyOptions copyOption => new CopyOptions
         {
             UseCategories = true,
@@ -80,6 +82,7 @@ namespace Svetokop.ViewModels
             MetricVM = new MetricViewModel();
             LogVM = new LogViewModel(logReporter);
             ProgressVM.StartRequested += OnStartRequested;
+            SpeedGraphVM = new SpeedGraphViewModel(_copyManager.ProgressStream);
         }
 
         private async Task OnStartRequested()

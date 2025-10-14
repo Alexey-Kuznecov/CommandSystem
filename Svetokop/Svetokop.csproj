@@ -22,4 +22,13 @@
     <ProjectReference Include="..\UnityCommander.Copying\UnityCommander.Copying.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="UnityGraph">
+      <HintPath>..\..\_builds\UnityGraph.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityGraph.WPF">
+      <HintPath>..\..\_builds\UnityGraph.WPF.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

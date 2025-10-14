@@ -1,11 +1,5 @@
 ﻿
 using CommandSystem.Gui.MVVM;
-using NLog.Filters;
-using UnityCommander.Copying;
-using UnityCommander.Copying.Helper;
-using UnityCommander.Copying.Sessions;
-using UnityCommander.Copying.Settings;
-using UnityCommander.Copying.Strategies;
 
 namespace Svetokop.ViewModels
 {
@@ -25,7 +19,7 @@ namespace Svetokop.ViewModels
         public SettingsViewModel()
         {
             SourcePath = "E:\\Projects\\03._Tests\\CopyFileTest\\Source2";
-            DestinationPath = "c:\\Target";
+            DestinationPath = "E:\\Projects\\03._Tests\\CopyFileTest\\Target";
             UseMultiThreading = false;
             MaxConcurrentTasks = 2;
         }
