@@ -294,7 +294,7 @@ namespace UnityCommander.Copying
                 bufferSize,
                 bytesCopied =>
                 {
-                    session.Controller.WaitIfPaused();
+                    //session.Controller.WaitIfPaused();
                     cancellationToken.ThrowIfCancellationRequested();
                     _progressTracker.UpdateProgress(bytesCopied);
                     session.UpdateFileProgress(file.Source, bytesCopied);
@@ -303,7 +303,7 @@ namespace UnityCommander.Copying
                     //Debug.WriteLine($"CurrentFilePath={_progressTracker.GetProgressInfo().CurrentFilePath}, Bytes={_progressTracker.GetProgressInfo().CurrentFileCopiedBytes}");
                 },
                 cancellationToken,
-                session.Controller.WaitIfPaused);
+                session);
             // Останавливаем секундомер — завершение измерения времени
             stopwatch.Stop();
             // Уведомляем систему метрик о завершении копирования: путь, размер, затраченное время

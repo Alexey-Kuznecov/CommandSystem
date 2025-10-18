@@ -8,12 +8,12 @@ using UnityCommander.Copying.Settings;
 
 namespace UnityCommander.Copying.Core
 {
-    public interface ICopyManager
+    public interface ICopyExecutionStrategy
     {
-        Task CopyAsync(
-        string source,
-        string destination,
-        CopyOptions options,
-        CancellationToken cancellationToken = default);
+        Task ExecuteAsync(
+            IEnumerable<DiscoveredItem> items,
+            CopyContext context,
+            CopyOptions options,
+            CopySessionService sessionService);
     }
 }

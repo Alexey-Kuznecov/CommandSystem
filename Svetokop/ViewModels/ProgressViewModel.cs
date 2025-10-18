@@ -14,7 +14,7 @@ namespace Svetokop.ViewModels
 {
     public class ProgressViewModel : ObservableObject, IDisposable
     {
-        private readonly CopyManager _copyManager;
+        private readonly OpenManager _copyManager;
         private readonly CopySessionManager _sessionManager;
         private readonly HumanReadableTimeCalculator _humanCalculator = new();
 
@@ -31,15 +31,12 @@ namespace Svetokop.ViewModels
         private IDisposable? _subscription;
         private bool _totalBytesReported;
 
-        // --- NEW: buffer + timer + event для View (ScottPlot) ---
-        private readonly ConcurrentQueue<double> _speedBuffer = new();
-        private readonly DispatcherTimer _chartTimer;
         public event Action<double>? SpeedSampleAvailable;
         public event Action<double>? TotalBytesChanged;
 
         public event Func<Task>? StartRequested = null;
 
-        public ProgressViewModel(CopyManager copyManager, CopySessionManager copySessionManager)
+        public ProgressViewModel(OpenManager copyManager, CopySessionManager copySessionManager)
         {
             _copyManager = copyManager ?? throw new ArgumentNullException(nameof(copyManager));
             _sessionManager = copySessionManager ?? throw new ArgumentNullException(nameof(copySessionManager));
@@ -54,11 +51,6 @@ namespace Svetokop.ViewModels
 
             // Подписка на изменение состояния сессии
             _sessionManager.CurrentSessionStateChanged += (s, state) => State = state;
-
-            // Таймер для выброса усреднённой точки для графика (пример: 10 Hz)
-            _chartTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
-            _chartTimer.Tick += (_, __) => EmitSpeedSample();
-            _chartTimer.Start();
         }
 
         #region Dependency Properties
@@ -166,52 +158,19 @@ namespace Svetokop.ViewModels
             var speedMb = info.SpeedBytesPerSecond / 1024.0 / 1024.0;
             CurrentSpeed = $"{speedMb:F2} MB/s";
 
-            if (_totalBytesReported == false && info.TotalBytes > 0)
-            {
-                TotalBytesChanged?.Invoke(info.TotalBytes);
-                _totalBytesReported = true;
-            }
-            // добавляем в буфер для графика
-            //_speedBuffer.Enqueue(speedMb);
-            SpeedSampleAvailable?.Invoke(info.SpeedBytesPerSecond / 1024.0 / 1024.0);
-
-
             TimeRemaining = _humanCalculator.GetDisplayValue(info.EstimatedTimeRemaining, DateTime.Now)
                 .ToString(@"hh\:mm\:ss");
             FilesCopiedText = $"{info.FilesCopied} / {info.TotalFiles} files";
             TotalCopiedText = $"{info.BytesCopied / 1024.0 / 1024.0:F2} MB of {info.TotalBytes / 1024.0 / 1024.0:F2} MB";
         }
 
-        // --- NEW: усреднение и отправка в View ---
-        private void EmitSpeedSample()
-        {
-            // аккуратно вынимаем все значения и считаем среднее
-            if (!_speedBuffer.TryDequeue(out var first))
-                return;
-
-            double sum = first;
-            int count = 1;
-            while (_speedBuffer.TryDequeue(out var v))
-            {
-                sum += v;
-                count++;
-            }
-
-            double avg = sum / count;
-            SpeedSampleAvailable?.Invoke(avg);
-        }
-
         private void SubscribeToProgress()
         {
+            // ⚠️ убрали Throttle — теперь работает через AggregatedProgressReporter
             _subscription = _copyManager.ProgressStream
-                .Throttle(TimeSpan.FromMilliseconds(1))
-                .ObserveOn(SynchronizationContext.Current!)
+                .ObserveOn(SynchronizationContext.Current!) // гарантированно UI поток
                 .Subscribe(UpdateProgress);
         }
-
-        public void Dispose()
-        {
-            _subscription?.Dispose();
-        }
+        public void Dispose() => _subscription?.Dispose();
     }
 }

@@ -26,8 +26,10 @@ namespace UnityCommander.Copying.Settings
         public bool ContinueOnError { get; set; } = true;
         public int BufferSize { get; set; } = 64 * 1024;     // Основной буфер
         public int MinBufferSize { get; set; } = 8 * 1024;   // Минимальный буфер для маленьких файлов
-        public bool UseProgressiveDiscovery { get; set; } = false;
-        public bool VerboseLogging { get; set; } = true;
+        public bool UseProgressiveDiscovery { get; set; }
+        public bool VerboseLogging { get; set; }
+        public bool UseWinApi { get; set; }
+        public bool UseParallel { get; set; }
     }
 
     public enum FileConflictAction

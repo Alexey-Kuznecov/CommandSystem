@@ -44,7 +44,7 @@ namespace UnityCommander.Copying.Sessions
         public void Pause()
         {
             _controller.Pause();
-            _logReporter.OnSessionPaused(_session);
+            //_logReporter.OnSessionPaused(_session);
         }
 
         public void Resume()

@@ -9,7 +9,7 @@ namespace Svetokop.ViewModels
 {
     public class FileListViewModel : ObservableObject
     {
-        private readonly Services.CopyFileReporter2? _fileReporter;
+        private readonly Services.CopyFileReporter? _fileReporter;
         private readonly ObservableCollection<FileCopyItem> _filteredFiles = new();
         public ReadOnlyObservableCollection<FileCopyItem> FilteredFiles { get; }
 
@@ -41,7 +41,7 @@ namespace Svetokop.ViewModels
         {
             FilteredFiles = new ReadOnlyObservableCollection<FileCopyItem>(_filteredFiles);
 
-            if (fileReporter is Services.CopyFileReporter2 reporter)
+            if (fileReporter is Services.CopyFileReporter reporter)
             {
                 _fileReporter = reporter;
             }

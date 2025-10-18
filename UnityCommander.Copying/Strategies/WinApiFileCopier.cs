@@ -4,15 +4,20 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityCommander.Copying.Core;
+using UnityCommander.Copying.Sessions;
 
 namespace UnityCommander.Copying.Strategies
 {
-    public class WinApiFileCopier //: IFileCopier
+    public class WinApiFileCopier : IFileCopier
     {
-        public async Task CopyFileAsync(string sourcePath, string destinationPath, CancellationToken cancellationToken)
+        public Task CopyFileAsync(string sourcePath, string destinationPath, int bufferSize, Action<long> onBytesCopied, CancellationToken cancellationToken, Action waitIfPaused)
         {
-            // Вызов CopyFileEx через P/Invoke
-            // cancellationToken проверяешь сам, т.к. WinAPI может не поддерживать отмену
+            throw new NotImplementedException();
+        }
+
+        public Task CopyFileAsync(string sourcePath, string destinationPath, int bufferSize, Action<long> onBytesCopied, CancellationToken cancellationToken, CopySessionService copySessionService)
+        {
+            throw new NotImplementedException();
         }
     }
 }

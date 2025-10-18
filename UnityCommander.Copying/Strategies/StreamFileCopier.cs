@@ -1,5 +1,6 @@
 ﻿
 using UnityCommander.Copying.Core;
+using UnityCommander.Copying.Sessions;
 using UnityCommander.Copying.Settings;
 
 namespace UnityCommander.Copying.Strategies
@@ -12,7 +13,7 @@ namespace UnityCommander.Copying.Strategies
             int bufferSize,
             Action<long> onBytesCopied,
             CancellationToken cancellationToken,
-            Action waitIfPaused)
+            CopySessionService copySessionService)
         {
             var buffer = new byte[bufferSize];
 
@@ -35,7 +36,7 @@ namespace UnityCommander.Copying.Strategies
             int bytesRead;
             while ((bytesRead = await sourceStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
             {
-                waitIfPaused?.Invoke();
+                await copySessionService.Controller.WaitIfPausedAsync(copySessionService.CancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
                 await destinationStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
                 onBytesCopied?.Invoke(bytesRead);

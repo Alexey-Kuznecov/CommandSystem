@@ -17,8 +17,7 @@ namespace UnityCommander.Copying.Sessions
         void Cancel();
         void Complete();
 
-        void WaitIfPaused();
-
+        Task WaitIfPausedAsync(CancellationToken cancellationToken);
         CancellationToken CancellationToken { get; }
     }
 

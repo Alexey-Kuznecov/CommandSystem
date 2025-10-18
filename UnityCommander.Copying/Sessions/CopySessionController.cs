@@ -8,7 +8,7 @@ namespace UnityCommander.Copying.Sessions
 {
     public class CopySessionController : ICopySessionController
     {
-        private readonly ManualResetEventSlim _pauseEvent = new(true);
+        private readonly AsyncManualResetEvent _pauseAsyncEvent;
         private CancellationTokenSource? _cts;
 
         private SessionState _state;
@@ -17,6 +17,12 @@ namespace UnityCommander.Copying.Sessions
         public bool IsRunning { get; private set; }
         public bool IsPaused { get; private set; }
         public bool IsCancelled { get; private set; }
+
+        public CopySessionController(bool startUnpaused = true)
+        {
+            // если true — начальное состояние "не на паузе" (разрешено)
+            _pauseAsyncEvent = new AsyncManualResetEvent(startUnpaused);
+        }
 
         public SessionState State
         {
@@ -39,21 +45,23 @@ namespace UnityCommander.Copying.Sessions
             IsRunning = true;
             IsPaused = false;
             IsCancelled = false;
+
             _cts = new CancellationTokenSource();
+            _pauseAsyncEvent.Set(); // убедимся, что снимаем паузу при старте
         }
 
         public void Pause()
         {
             State = SessionState.Paused;
             IsPaused = true;
-            _pauseEvent.Reset();
+            _pauseAsyncEvent.Reset();
         }
 
         public void Resume()
         {
             State = SessionState.Running;
             IsPaused = false;
-            _pauseEvent.Set();
+            _pauseAsyncEvent.Set();
         }
 
         public void Cancel()
@@ -69,11 +77,11 @@ namespace UnityCommander.Copying.Sessions
             IsRunning = false;
         }
 
-        public void WaitIfPaused()
+        // Асинхронное ожидание паузы — НИКОГДА не блокирует поток
+        public Task WaitIfPausedAsync(CancellationToken cancellationToken = default)
         {
-            _pauseEvent.Wait();
-            if (_cts?.Token.IsCancellationRequested ?? false)
-                _cts.Token.ThrowIfCancellationRequested();
+            // если нужен тайм-аут/обработка отмены, прокидываем token
+            return _pauseAsyncEvent.WaitAsync(cancellationToken);
         }
     }
 }

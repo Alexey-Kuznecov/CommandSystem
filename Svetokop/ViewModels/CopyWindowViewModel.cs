@@ -2,6 +2,8 @@
 using CommandSystem.CopyTester.ViewModels;
 using CommandSystem.Gui.MVVM;
 using Svetokop.Services;
+using System.CodeDom.Compiler;
+using System.Numerics;
 using UnityCommander.Copying;
 using UnityCommander.Copying.Category;
 using UnityCommander.Copying.Core;
@@ -17,6 +19,7 @@ namespace Svetokop.ViewModels
     public class CopyWindowViewModel : ObservableObject
     {
         private readonly CopyManager _copyManager;
+        private readonly OpenManager _openManager;
         private CopySessionManager _copySessionManager;
         // Под-VM для отдельных областей
         public ProgressViewModel ProgressVM { get; }
@@ -27,19 +30,6 @@ namespace Svetokop.ViewModels
         public MetricViewModel MetricVM { get; }
 
         public SpeedGraphViewModel SpeedGraphVM { get; }
-        public CopyOptions copyOption => new CopyOptions
-        {
-            UseCategories = true,
-            UseMultiThreading = true,
-            MaxConсurrentTasks = 5,
-            UseMetrics = true,
-            UseDualChannels = true,
-            // Новое
-            BufferSize = 64 * 1024,
-            MinBufferSize = 8 * 1024,
-            UseProgressiveDiscovery = false,
-            VerboseLogging = true
-        };
 
         public CopyWindowViewModel()
         {
@@ -50,39 +40,37 @@ namespace Svetokop.ViewModels
             IProgressCalculator progressCalculator = new ProgressCalculator();
             ISpeedCalculator speedCalculator = new SpeedCalculator();
             IProgressTracker progressTracker = new ProgressTracker(progressCalculator, speedCalculator);
-            IProgressReporter reporter = new GuiProgressReporter();
-            IFileCopier fileCopier = new StreamFileCopier();
-            ICopyErrorHandler errorHandler = new LoggerCopyErrorHandler(logger);
-            ICopySuccessHandler successHandler = new GuiCopySuccessHandler();
+            IProgressReporter guiReporter = new GuiProgressReporter();
+            IProgressReporter aggregatedReporter = new AggregatedProgressReporter(guiReporter, TimeSpan.FromMilliseconds(1));
             IFileCopyPlanner fileCopyPlanner = new DefaultFileCopyPlanner(categorizer);
-            //ICopyReporter fileReporter = new CopyFileReporter(action => Application.Current.Dispatcher.Invoke(action));
-            ICopyReporter fileReporter = new CopyFileReporter2();
+            ICopyExecutionStrategy copierExFactory = new ParallelExecutionStrategy();
+            IFileCopierFactory copierFactory = new DefaultFileCopierFactory();
+            ICopyReporter fileReporter = new Services.CopyFileReporter();
+            ICopyExecutor excutor = new CopyExecutor();
             ICopyReporter logReporter = new CopyLogReporter();
             ICopyMetricsCollector metrics = new NullCopyMetricsCollector();
             _copySessionManager = new CopySessionManager(fileReporter, logReporter);
-            
-            // Менеджер копирования (собираем руками)
-            _copyManager = new CopyManager(
-                fileCopier,
+
+            _openManager = new OpenManager(
                 fileCopyPlanner,
+                excutor,
+                copierFactory,
                 progressTracker,
-                reporter,
+                aggregatedReporter,
                 categorizer,
-                consoleOutput: null,
-                errorHandler: errorHandler,
-                successHandler: successHandler,
-                metrics
+                metrics,
+                logger
             );
 
             // Инициализация под-VM
             FileListVM = new FileListViewModel(fileReporter);
-            ProgressVM = new ProgressViewModel(_copyManager, _copySessionManager);
+            ProgressVM = new ProgressViewModel(_openManager, _copySessionManager);
             SettingsVM = new SettingsViewModel();
             HistoryVM = new HistoryViewModel(_copyManager);
             MetricVM = new MetricViewModel();
             LogVM = new LogViewModel(logReporter);
             ProgressVM.StartRequested += OnStartRequested;
-            SpeedGraphVM = new SpeedGraphViewModel(_copyManager.ProgressStream);
+            SpeedGraphVM = new SpeedGraphViewModel(_openManager.ProgressStream);
         }
 
         private async Task OnStartRequested()
@@ -91,7 +79,7 @@ namespace Svetokop.ViewModels
             var destination = SettingsVM.DestinationPath;
             var session = _copySessionManager.CreateSession(source, destination);
             if (session != null)
-                await _copyManager.CopyFilesAsync(source, destination, session, BuildSettings(SettingsVM, session));
+                await _openManager.StartCopyAsync(source, destination, session, BuildSettings(SettingsVM, session));
         }
 
         public CompositeCopySettings BuildSettings(SettingsViewModel userSettings, CopySessionService session)
@@ -104,11 +92,11 @@ namespace Svetokop.ViewModels
                 opts.MaxConсurrentTasks = 5;
                 opts.UseCategories = true;
                 opts.UseMetrics = true;
-                opts.UseDualChannels = true;
+                opts.UseDualChannels = false;
+                opts.UseParallel = true;
                 // Новое
                 opts.BufferSize = 64 * 1024;
                 opts.MinBufferSize = 8 * 1024;
-                opts.UseProgressiveDiscovery = false;
                 opts.VerboseLogging = true;
             });
 
@@ -125,6 +113,9 @@ namespace Svetokop.ViewModels
             {
                 opts.MaxConсurrentTasks = userSettings.MaxConcurrentTasks; // переопределение
                 opts.UseMultiThreading = userSettings.UseMultiThreading;
+                opts.UseParallel = userSettings.UseMultiThreading;
+                opts.UseProgressiveDiscovery = false;
+                opts.UseWinApi = false;
             });
 
             return composite;

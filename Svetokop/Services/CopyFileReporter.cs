@@ -9,7 +9,7 @@ using UnityCommander.Copying.Sessions;
 
 namespace Svetokop.Services
 {
-    public class CopyFileReporter2 : ICopyReporter
+    public class CopyFileReporter : ICopyReporter
     {
         private readonly ObservableCollection<FileCopyItem> _files = new();
         public ReadOnlyObservableCollection<FileCopyItem> Files { get; }
@@ -20,7 +20,7 @@ namespace Svetokop.Services
 
         public event Action<CopySession>? SessionCompleted;
 
-        public CopyFileReporter2()
+        public CopyFileReporter()
         {
             Files = new ReadOnlyObservableCollection<FileCopyItem>(_files);
             _dispatcher = Application.Current.Dispatcher;
