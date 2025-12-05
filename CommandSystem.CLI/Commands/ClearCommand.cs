@@ -1,4 +1,7 @@
 ﻿
+using CommandSystem.Console.Commands;
+using CommandSystem.Console.Core;
+
 namespace CommandSystem.CLI.Commands
 {
     public class ClearCommand : ConsoleCommandBase

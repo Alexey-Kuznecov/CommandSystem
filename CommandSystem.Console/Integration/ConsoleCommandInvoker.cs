@@ -1,6 +1,6 @@
-﻿using CommandSystem.Console.Commands;
+﻿
+using CommandSystem.Console.Commands;
 using CommandSystem.Console.Core;
-using CommandSystem.Console.Integration.CommandSystem.Console.Integration;
 
 namespace CommandSystem.Console.Integration
 {

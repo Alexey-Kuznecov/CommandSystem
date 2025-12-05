@@ -1,12 +1,6 @@
 ﻿using CommandSystem.Console.Commands;
 using CommandSystem.Console.Core;
 using CommandSystem.Console.Integration;
-using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CommandSystem.Commands
 {

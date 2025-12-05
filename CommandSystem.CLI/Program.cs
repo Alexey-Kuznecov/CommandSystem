@@ -1,6 +1,10 @@
-﻿// See https://aka.ms/new-console-template for more information
-
+﻿
 using CommandSystem.CLI;
+using CommandSystem.Commands;
+using CommandSystem.Console.Commands;
+using CommandSystem.Console.Core;
+using CommandSystem.Console.Integration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CommandSystem
 {

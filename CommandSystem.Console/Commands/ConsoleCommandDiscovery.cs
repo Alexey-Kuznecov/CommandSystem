@@ -1,8 +1,8 @@
-﻿using System.Reflection;
+﻿
+using System.Reflection;
 using CommandSystem.Console.Commands;
 using CommandSystem.Console.Core;
 using CommandSystem.Console.Integration;
-using Microsoft.Extensions.DependencyInjection; // <- Обязательно
 
 public static class ConsoleCommandDiscovery
 {

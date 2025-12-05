@@ -1,4 +1,6 @@
 ﻿
+using System.Text.RegularExpressions;
+
 namespace CommandSystem.CLI
 {
     public class ParseHelper

@@ -1,9 +1,5 @@
-﻿using CommandSystem.Core.Metadata;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
+using CommandSystem.Abstractions;
 
 namespace CommandSystem.Console.Core
 {

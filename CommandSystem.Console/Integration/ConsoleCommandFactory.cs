@@ -1,11 +1,5 @@
-﻿using CommandSystem.Console.Core;
-using CommandSystem.Console.Integration.CommandSystem.Console.Integration;
-using CommandSystem.Core.Abstractions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
+using CommandSystem.Console.Core;
 
 namespace CommandSystem.Console.Integration
 {

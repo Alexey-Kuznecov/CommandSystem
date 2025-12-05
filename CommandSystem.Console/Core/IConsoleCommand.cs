@@ -1,6 +1,4 @@
 ﻿
-using CommandSystem.Core.Abstractions;
-
 namespace CommandSystem.Console.Core
 {
     public interface IConsoleCommand
