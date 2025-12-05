@@ -1,6 +1,5 @@
-﻿using CommandSystem.Core.Abstractions;
-using CommandSystem.Core.Commands;
-using CommandSystem.Core.Metadata;
+﻿
+using CommandSystem.Abstractions;
 using CommandSystem.Gui.Core;
 using CommandSystem.Infrastructure.Execution;
 

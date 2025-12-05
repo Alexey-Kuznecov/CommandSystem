@@ -1,6 +1,5 @@
-﻿using CommandSystem.Core.Commands;
-
-namespace CommandSystem.Core.Abstractions
+﻿
+namespace CommandSystem.Abstractions
 {
     public interface IUndoableCommand : ICommand
     {

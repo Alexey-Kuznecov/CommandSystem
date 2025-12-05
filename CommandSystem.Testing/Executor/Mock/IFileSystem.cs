@@ -1,6 +1,6 @@
-﻿namespace CommandSystem.Testing.Executor.Mock
+﻿
+namespace CommandSystem.Testing.Executor.Mock
 {
-
     public interface IFileSystem
     {
         bool Exists(string path); // Проверка, существует ли файл

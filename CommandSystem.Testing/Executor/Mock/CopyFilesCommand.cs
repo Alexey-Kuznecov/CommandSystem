@@ -1,5 +1,5 @@
-﻿using CommandSystem.Core.Abstractions;
-using CommandSystem.Core.Commands;
+﻿
+using CommandSystem.Abstractions;
 
 namespace CommandSystem.Testing.Executor.Mock
 {

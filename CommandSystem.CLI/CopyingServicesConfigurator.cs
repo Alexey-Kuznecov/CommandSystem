@@ -1,15 +1,4 @@
 ﻿
-using AlexeyKuznetsov.Logger;
-using Microsoft.Extensions.DependencyInjection;
-using UnityCommander.Copying;
-using UnityCommander.Copying.Core;
-using UnityCommander.Copying.Filtering;
-using UnityCommander.Copying.Handler;
-using UnityCommander.Copying.Progress;
-using UnityCommander.Copying.Reporting;
-using UnityCommander.Copying.Settings;
-using UnityCommander.Copying.Strategies;
-
 namespace CommandSystem.CLI
 {
     public static class CopyingServicesConfigurator

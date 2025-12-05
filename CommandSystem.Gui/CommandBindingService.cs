@@ -1,4 +1,5 @@
-﻿using CommandSystem.Gui.Core;
+﻿
+using CommandSystem.Gui.Core;
 using CommandSystem.Gui.MVVM;
 
 namespace CommandSystem.Gui

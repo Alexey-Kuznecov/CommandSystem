@@ -1,6 +1,6 @@
-﻿using CommandSystem.Core.Abstractions;
-using CommandSystem.Core.Abstractions.Metadata;
-using CommandSystem.Core.Commands;
+﻿
+using CommandSystem.Abstractions;
+using CommandSystem.Abstractions.Metadata;
 
 namespace CommandSystem.Core.Decorators
 {

@@ -1,8 +1,5 @@
-﻿using CommandSystem.Core.Commands;
-using CommandSystem.Core.Metadata;
-
-namespace CommandSystem.Core.Abstractions;
-
+﻿
+namespace CommandSystem.Abstractions;
 public interface ICommandDispatcher
 {
     void Dispatch(string commandName, CommandContext context, CancellationToken cancellationToken = default);

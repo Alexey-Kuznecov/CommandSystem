@@ -10,4 +10,10 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.4" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\CommandSystem.Abstractions\CommandSystem.Abstractions.csproj" />
+  </ItemGroup>
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="xcopy /y /d &quot;$(TargetPath)&quot; &quot;$(SolutionDir)..\_builds\&quot;" />
+	</Target>
 </Project>

@@ -1,11 +1,5 @@
-﻿using CommandSystem.Core.Commands;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace CommandSystem.Core.Abstractions
+﻿
+namespace CommandSystem.Abstractions
 {
     public interface IAsyncCommand : ICommandBase
     {

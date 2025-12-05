@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CommandSystem.Core.Metadata
+namespace CommandSystem.Abstractions
 {
     public class CommandMetadata
     {

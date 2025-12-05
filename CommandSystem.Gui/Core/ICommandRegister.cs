@@ -1,5 +1,5 @@
-﻿using CommandSystem.Core.Commands;
-using CommandSystem.Core.Metadata;
+﻿
+using CommandSystem.Abstractions;
 
 namespace CommandSystem.Gui.Core
 {

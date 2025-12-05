@@ -1,8 +1,4 @@
-﻿using CommandSystem.Core.Commands;
-using CommandSystem.Infrastructure.Execution;
-using CommandSystem.Testing.Executor.Mock;
-using Moq;
-
+﻿
 namespace CommandSystem.Testing.Executor;
 
 public class CopyFilesCommandTests

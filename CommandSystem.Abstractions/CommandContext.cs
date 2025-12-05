@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
+﻿
 using Microsoft.Extensions.DependencyInjection;
 
-namespace CommandSystem.Core.Commands
+namespace CommandSystem.Abstractions
 {
     public class CommandContext
     {
@@ -14,6 +9,7 @@ namespace CommandSystem.Core.Commands
         public object? Parameter { get; }
         public IServiceProvider? Services { get; }
         public CancellationToken CancellationToken { get; }
+        public object? Result { get; set; }
 
         public CommandContext(string? name, IServiceProvider services, object? parameter = null, CancellationToken cancellationToken = default)
         {

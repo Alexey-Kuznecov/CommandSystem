@@ -1,11 +1,5 @@
-﻿using CommandSystem.Core.Abstractions;
-using CommandSystem.Core.Commands;
-using CommandSystem.Core.Metadata;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
+using CommandSystem.Abstractions;
 
 namespace CommandSystem.Gui.Integraion
 {
@@ -27,7 +21,7 @@ namespace CommandSystem.Gui.Integraion
         }
 
         public Task ExecuteAsync(string commandName, object? parameter = null, CommandContext? context = null, CancellationToken cancellationToken = default)
-        {
+         {
             var ctx = new CommandContext(commandName, _services, parameter, cancellationToken);
             return _dispatcher.DispatchAsync(commandName, ctx, cancellationToken);
         }

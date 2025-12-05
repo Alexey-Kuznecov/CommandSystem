@@ -1,9 +1,5 @@
-﻿using CommandSystem.Core.Execution;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
+using CommandSystem.Core.Execution;
 
 namespace CommandSystem.Gui.MVVM
 {

@@ -1,6 +1,5 @@
-﻿using CommandSystem.Core.Abstractions;
-using CommandSystem.Core.Commands;
-
+﻿
+using CommandSystem.Abstractions;
 
 namespace CommandSystem.Infrastructure.Execution
 {
@@ -34,7 +33,7 @@ namespace CommandSystem.Infrastructure.Execution
             }
         }
 
-        public async Task ExecuteAsync(IAsyncCommand command, CommandContext context, CancellationToken cancellationToken = default)
+        public async Task ExecuteAsync(IAsyncCommand command, CommandContext? context = null, CancellationToken cancellationToken = default)
         {
             if (command is null) throw new ArgumentNullException(nameof(command));
             if (!command.CanExecute(context)) return;
@@ -60,7 +59,7 @@ namespace CommandSystem.Infrastructure.Execution
             }
         }
 
-        public async Task ExecuteAsync<T>(IAsyncCommand<T> command, T parameter, CommandContext context, CancellationToken cancellationToken = default)
+        public async Task ExecuteAsync<T>(IAsyncCommand<T> command, T parameter, CommandContext? context = null, CancellationToken cancellationToken = default)
         {
             if (command is null) throw new ArgumentNullException(nameof(command));
             if (!command.CanExecute(parameter, context)) return;

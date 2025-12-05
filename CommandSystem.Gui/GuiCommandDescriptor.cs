@@ -1,4 +1,5 @@
-﻿namespace CommandSystem.Gui
+﻿
+namespace CommandSystem.Gui
 {
     public class GuiCommandDescriptor
     {

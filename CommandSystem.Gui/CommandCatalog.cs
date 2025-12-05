@@ -1,4 +1,5 @@
-﻿using CommandSystem.Core.Abstractions;
+﻿
+using CommandSystem.Abstractions;
 using CommandSystem.Gui.Core;
 
 namespace CommandSystem.Gui

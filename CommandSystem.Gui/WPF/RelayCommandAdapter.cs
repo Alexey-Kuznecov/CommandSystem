@@ -1,4 +1,5 @@
-﻿namespace CommandSystem.Gui.WPF
+﻿
+namespace CommandSystem.Gui.WPF
 {
     public class RelayCommandAdapter
     {
