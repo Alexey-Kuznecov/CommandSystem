@@ -45,7 +45,7 @@ namespace Svetokop.ViewModels
             IFileCopyPlanner fileCopyPlanner = new DefaultFileCopyPlanner(categorizer);
             ICopyExecutionStrategy copierExFactory = new ParallelExecutionStrategy();
             IFileCopierFactory copierFactory = new DefaultFileCopierFactory();
-            ICopyReporter fileReporter = new Services.CopyFileReporter();
+            CopyFileReporter fileReporter = new Services.CopyFileReporter();
             ICopyExecutor excutor = new CopyExecutor();
             ICopyReporter logReporter = new CopyLogReporter();
             ICopyMetricsCollector metrics = new NullCopyMetricsCollector();
@@ -68,7 +68,7 @@ namespace Svetokop.ViewModels
             SettingsVM = new SettingsViewModel();
             HistoryVM = new HistoryViewModel(_copyManager);
             MetricVM = new MetricViewModel();
-            LogVM = new LogViewModel(logReporter);
+            //LogVM = new LogViewModel(logReporter);
             ProgressVM.StartRequested += OnStartRequested;
             SpeedGraphVM = new SpeedGraphViewModel(_openManager.ProgressStream);
         }
@@ -103,9 +103,9 @@ namespace Svetokop.ViewModels
             // сессионные
             composite.Add(SettingPriority.Session, opts =>
             {
-                //session.ProgressStep = 10;
-                //session.VerboseLogging = false;
-                //opts.VerboseLogging = session.VerboseLogging;
+                session.CurrentSession.ProgressStep = 10;
+                session.CurrentSession.VerboseLogging = true;
+                opts.VerboseLogging = session.CurrentSession.VerboseLogging;
             });
 
             // пользовательские (имеют больший приоритет)

@@ -5,5 +5,6 @@ namespace CommandSystem.Abstractions
     {
         string Name { get; }
         object Command { get; }
+        CommandMetadata Metadata { get; }
     }
 }

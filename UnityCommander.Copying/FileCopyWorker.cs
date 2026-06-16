@@ -1,5 +1,4 @@
 ﻿
-using AlexeyKuznetsov.Logger;
 using System.Diagnostics;
 using UnityCommander.Copying.Core;
 using UnityCommander.Copying.Sessions;
@@ -7,45 +6,61 @@ using UnityCommander.Copying.Settings;
 
 namespace UnityCommander.Copying
 {
-    public static class FileCopyWorker
+    public class FileCopyWorker
     {
-        public static async Task CopyOneAsync(
-            DiscoveredItem item,
-            CopyContext ctx,
-            CopyOptions opt,
-            CopySessionService sessionService)
+        private readonly CopyContext _context;
+        private readonly CopySessionService _sessionService;
+        private readonly CopyOptions _options;
+
+        public FileCopyWorker(CopyContext context, CopySessionService sessionService, CopyOptions options)
         {
-            var copier = ctx.CopierFactory.CreateFor(item, opt);
+            _context = context;
+            _sessionService = sessionService;
+            _options = options;
+        }
+
+        public async Task CopyOneAsync(DiscoveredItem item)
+        {
+            var copier = _context.CopierFactory.CreateFor(item, _options);
             var sw = Stopwatch.StartNew();
-            ctx.ProgressTracker.StartFile(item.Source, new FileInfo(item.Source).Length);
-            sessionService.OnFileStarted(item.Source, item.Destination, item.FileSize);
+
+            _context.ProgressTracker.StartFile(item.Source, new FileInfo(item.Source).Length);
+            //_sessionService.OnFileStarted(item.Source, item.Destination, item.FileSize);
+
             try
             {
                 await copier.CopyFileAsync(
-                item.Source, item.Destination, opt.BufferSize,
-                async bytes => {
-                    await sessionService.Controller.WaitIfPausedAsync(sessionService.CancellationToken);
-                    ctx.ProgressTracker.UpdateProgress(bytes);
-                    ctx.ProgressReporter.Report(ctx.ProgressTracker.GetProgressInfo());
-                    sessionService.UpdateFileProgress(item.Source, bytes);
-                },
-                sessionService.CancellationToken, sessionService);
+                    item.Source,
+                    item.Destination,
+                    _options.BufferSize,
+                    async bytes =>
+                    {
+                        await _sessionService.Controller.WaitIfPausedAsync(_sessionService.CancellationToken);
+                        _context.ProgressTracker.UpdateProgress(bytes);
+                        _context.ProgressReporter.Report(_context.ProgressTracker.GetProgressInfo());
+                        //_sessionService.UpdateFileProgress(item.Source, bytes);
+                    },
+                    _sessionService.CancellationToken,
+                    _sessionService
+                );
             }
             catch (OperationCanceledException)
             {
-                sessionService.UpdateFileStatus(item.Source, FileCopyStatus.Cancelled);
+                //_sessionService.UpdateFileStatus(item.Source, FileCopyStatus.Cancelled);
             }
             catch (Exception ex)
             {
-                sessionService.UpdateFileStatus(item.Source, FileCopyStatus.Failed);
+                //_sessionService.UpdateFileStatus(item.Source, FileCopyStatus.Failed);
+                _context.Metrics?.OnError(item.Source, ex);
             }
             finally
             {
-                ctx.ProgressTracker.CompleteFile();
-                sessionService.UpdateFileStatus(item.Source, FileCopyStatus.Completed);
+                _context.ProgressTracker.CompleteFile();
+                //_sessionService.UpdateFileStatus(item.Source, FileCopyStatus.Completed);
                 sw.Stop();
-                ctx.Metrics?.OnFileCopyCompleted(item.Source, item.Destination, item.FileSize, sw.Elapsed);
+                _context.Metrics?.OnFileCopyCompleted(item.Source, item.Destination, item.FileSize, sw.Elapsed);
             }
         }
     }
+
 }

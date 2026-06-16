@@ -3,7 +3,7 @@ using CommandSystem.Abstractions;
 
 namespace CommandSystem.Core.Decorators
 {
-    public class UndoableAsyncCommandDecorator : IUndoableAsyncCommand
+    public class UndoableAsyncCommandDecorator //: IUndoableAsyncCommand
     {
         private readonly IAsyncCommand _inner;
         private readonly Func<CommandContext, Task>? _undoHandler;

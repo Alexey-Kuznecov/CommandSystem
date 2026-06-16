@@ -54,7 +54,7 @@ namespace CommandSystem.Infrastructure.Execution
             }
             catch (Exception ex)
             {
-                // Логирование или обработка других исключений
+                // Логирование или обработка д  ругих исключений
                 throw new InvalidOperationException("Execution failed.", ex);
             }
         }

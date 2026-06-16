@@ -3,7 +3,6 @@ using CommandSystem.Commands.UtilProcess;
 using CommandSystem.Console.Core;
 using CommandSystem.Console.Integration;
 using System.Diagnostics;
-using UnityCommander.Native;
 
 namespace CommandSystem.Commands
 {
@@ -58,14 +57,14 @@ namespace CommandSystem.Commands
 
             try
             {
-                using var enumerator = ProcessUtility.GetOpenFilesEnumerator(process.Id);
-                while (enumerator.MoveNext())
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                        break;
+                //using var enumerator = ProcessUtility.GetOpenFilesEnumerator(process.Id);
+                //while (enumerator.MoveNext())
+                //{
+                //    if (cancellationToken.IsCancellationRequested)
+                //        break;
 
-                    infos.Add(enumerator.Current);
-                }
+                //    infos.Add(enumerator.Current);
+                //}
             }
             catch (Exception ex)
             {

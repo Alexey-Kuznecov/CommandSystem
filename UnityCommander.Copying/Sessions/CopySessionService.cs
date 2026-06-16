@@ -1,5 +1,4 @@
 ﻿
-using CommandSystem.Gui.MVVM;
 using UnityCommander.Copying.Core;
 using UnityCommander.Copying.Helper;
 using UnityCommander.Copying.Reporting;
@@ -30,15 +29,24 @@ namespace UnityCommander.Copying.Sessions
 
         public ICopyReporter LogReporter => _logReporter;
 
+        public long SmallFileThreshold { get; } = 1048576;
+
         public void StartSession(long totalBytes, int totalFiles)
         {
             _session.TotalBytes = totalBytes;
             _session.TotalFiles = totalFiles;
             _session.State = SessionState.Running;
             _session.StartTime = DateTime.Now;
-
             _controller.Start(totalBytes, totalFiles);
-            _logReporter.OnSessionStarted(_session);
+            //_logReporter.OnSessionStarted(_session);
+        }
+
+        public void Complete()
+        {
+            _controller.Complete();
+            _session.EndTime = DateTime.Now;
+            //_uiReporter.OnSessionCompleted(_session);
+            //_logReporter.OnSessionCompleted(_session);
         }
 
         public void Pause()
@@ -50,27 +58,25 @@ namespace UnityCommander.Copying.Sessions
         public void Resume()
         {
             _controller.Resume();
-            _logReporter.OnSessionResumed(_session);
+            //_logReporter.OnSessionResumed(_session);
         }
 
         public void Cancel()
         {
             _controller.Cancel();
-            _logReporter.OnSessionCancelled(_session);
+            //_logReporter.OnSessionCancelled(_session);
         }
 
-        public void Complete()
+        public void PrepareFileList(IEnumerable<(string source, string destination, long size)> files)
         {
-            _controller.Complete();
-            _session.EndTime = DateTime.Now;
-            _uiReporter.OnSessionCompleted(_session);
-            _logReporter.OnSessionCompleted(_session);
+            _uiReporter.PrepareFileList(files);
         }
+
 
         // --- Работа с файлами ---
         public void OnFileStarted(string source, string destination, long size)
         {
-            var item = new FileCopyItem(source, destination)
+            var item = new FileCopyItem(source, destination, size)
             {
                 Size = size,
                 StartTime = DateTime.Now
@@ -78,21 +84,47 @@ namespace UnityCommander.Copying.Sessions
 
             _session.AddFile(item);
 
-            _uiReporter.OnFileStarted(_session, source, destination, size);
-            _logReporter.OnFileStarted(_session, source, destination, size); // <-- добавь это
+            // Если файл маленький, сразу помечаем Completed
+            //if (size <= SmallFileThreshold)
+            //{
+            //    item.BytesCopied = size;
+            //    item.Status = FileCopyStatus.Completed;
+            //    item.Progress = 100;
+
+            //    if (CurrentSession.VerboseLogging)
+            //    {
+            //        _uiReporter.OnFileCompleted(source, true);
+            //        _logReporter.OnFileCompleted(source, true);
+            //    }
+            //}
+            //else
+            //{
+                if (CurrentSession.VerboseLogging)
+                {
+                    _uiReporter.OnFileStarted(_session, source, destination, size);
+                    _logReporter.OnFileStarted(_session, source, destination, size);
+                }
+            //}
         }
 
         public void UpdateFileProgress(string source, long bytesCopied)
         {
             var item = _session.GetFile(source);
             if (item == null) return;
+
+            // Пропускаем маленькие файлы, уже помеченные как Completed
+            if (item.Status == FileCopyStatus.Completed)
+                return;
+
             _session.BytesCopied += bytesCopied;
-            item.BytesCopied = bytesCopied;
+            item.BytesCopied += bytesCopied; // добавляем, а не перезаписываем
             item.Status = FileCopyStatus.InProgress;
 
-            var elapsed = DateTime.Now - item.StartTime;
-            _uiReporter.OnFileProgress(_session, source, item.BytesCopied, item.Size);
-            _logReporter.OnFileProgress(_session, source, item.BytesCopied, item.Size); 
+            if (CurrentSession.VerboseLogging)
+            {
+                _uiReporter.OnFileProgress(source, item.BytesCopied);
+                //_logReporter.OnFileProgress(_session, source, item.BytesCopied, item.Size);
+            }
         }
 
         public void UpdateFileStatus(string source, FileCopyStatus status)
@@ -100,12 +132,19 @@ namespace UnityCommander.Copying.Sessions
             var item = _session.GetFile(source);
             if (item == null) return;
 
+            // Если файл уже Completed (малый), пропускаем
+            if (item.Status == FileCopyStatus.Completed)
+                return;
+
             item.Status = status;
             if (status == FileCopyStatus.Completed)
                 _session.FilesCopied++;
 
-            _uiReporter.OnFileCompleted(_session, source, item.Destination, status == FileCopyStatus.Completed);
-            _logReporter.OnFileCompleted(_session, source, item.Destination, status == FileCopyStatus.Completed);
+            if (CurrentSession.VerboseLogging)
+            {
+                _uiReporter.OnFileCompleted(source, status == FileCopyStatus.Completed);
+                //_logReporter.OnFileCompleted(_session, source, item.Destination, status == FileCopyStatus.Completed);
+            }
         }
 
         public void CleanupAfterCancel(IEnumerable<DiscoveredItem> plannedItems)

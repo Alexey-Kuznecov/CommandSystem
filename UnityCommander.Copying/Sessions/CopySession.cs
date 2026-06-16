@@ -22,7 +22,8 @@ namespace UnityCommander.Copying.Sessions
         public int TotalFiles { get; internal set; }
         public DateTime StartTime { get; internal set; }
         public DateTime? EndTime { get; internal set; }
-        public int ProgressStep { get; set; } = 15; // шаг прогресса в процентах (1% по умолчанию)
+        public int ProgressStep { get; set; } // шаг прогресса в процентах (1% по умолчанию)
+        public bool VerboseLogging { get; set; }
 
         public CopySession(string source, string destination)
         {
@@ -44,7 +45,7 @@ namespace UnityCommander.Copying.Sessions
             _files[item.Source] = item;
         }
 
-        internal FileCopyItem GetFile(string source)
+        public FileCopyItem GetFile(string source)
         {
             if (string.IsNullOrWhiteSpace(source))
                 throw new ArgumentException("Source path cannot be null or empty.", nameof(source));

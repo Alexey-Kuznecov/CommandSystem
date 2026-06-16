@@ -1,6 +1,5 @@
 ﻿using CommandSystem.Console.Core;
 using System.Diagnostics;
-using UnityCommander.Native;
 
 namespace CommandSystem.Commands.UtilProcess
 {
@@ -24,31 +23,31 @@ namespace CommandSystem.Commands.UtilProcess
 
         private static void VmcControllerTest(string processName)
         {
-            List<FileSystemInfo> infos;
+            //List<FileSystemInfo> infos;
 
-            var process = Process.GetProcessesByName(processName).Select(p => p.Id).ToList();
-            if (!process.Any())
-            {
-                _output.WriteLine($"Процесс с именем {processName} не найден.");
-                return;
-            }
+            //var process = Process.GetProcessesByName(processName).Select(p => p.Id).ToList();
+            //if (!process.Any())
+            //{
+            //    _output.WriteLine($"Процесс с именем {processName} не найден.");
+            //    return;
+            //}
 
-            infos = new List<FileSystemInfo>();
+            //infos = new List<FileSystemInfo>();
 
-            using (var openFiles = ProcessUtility.GetOpenFilesEnumerator(process[0]))
-            {
-                while (openFiles.MoveNext())
-                {
-                    infos.Add(openFiles.Current);
-                }
-            }
+            //using (var openFiles = ProcessUtility.GetOpenFilesEnumerator(process[0]))
+            //{
+            //    while (openFiles.MoveNext())
+            //    {
+            //        infos.Add(openFiles.Current);
+            //    }
+            //}
 
-            infos.Sort(SortPaths);
+            //infos.Sort(SortPaths);
 
-            foreach (var fileSystem in infos)
-            {
-                _output.WriteLine(fileSystem.FullName);
-            }
+            //foreach (var fileSystem in infos)
+            //{
+            //    _output.WriteLine(fileSystem.FullName);
+            //}
         }
 
         private static int SortPaths(FileSystemInfo firstPath, FileSystemInfo secondPath)

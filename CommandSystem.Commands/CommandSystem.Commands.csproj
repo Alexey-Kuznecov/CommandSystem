@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+	  <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -13,11 +13,6 @@
     <ProjectReference Include="..\..\AlexeyKuznetsov\AlexeyKuznetsov\AlexeyKuznetsov.csproj" />
     <ProjectReference Include="..\CommandSystem.Console\CommandSystem.Console.csproj" />
     <ProjectReference Include="..\UnityCommander.Copying\UnityCommander.Copying.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="UnityCommander.Native">
-      <HintPath>..\..\_builds\UnityCommander.Native.dll</HintPath>
-    </Reference>
   </ItemGroup>
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
 		<Exec Command="xcopy /y /d &quot;$(TargetPath)&quot; &quot;$(SolutionDir)..\_builds\cmd\&quot;" />

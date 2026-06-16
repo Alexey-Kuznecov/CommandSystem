@@ -43,14 +43,18 @@ namespace UnityCommander.Copying
             _reporter.ProgressChanged += info => _progressSubject.OnNext(info);
         }
 
-        public async Task StartCopyAsync(string source, string target, CopySessionService session, CompositeCopySettings settings)
+        public async Task StartCopyAsync(
+      string source,
+      string target,
+      CopySessionService session,
+      CompositeCopySettings settings)
         {
             var options = new CopyOptions();
             settings.Apply(ref options);
 
             var context = new CopyContext(
                 _tracker,
-                _reporter, // вместо прямого _reporter,
+                _reporter, // репортер
                 _metrics,
                 _categorizer,
                 _copierFactory,
@@ -69,13 +73,22 @@ namespace UnityCommander.Copying
                     yield return item;
             }
 
-            await _executor.ExecuteAsync(provider, context, options, session);
-        }
+            // --- Подготовка списка файлов для репортера ---
+            var discoveredList = new List<(string source, string destination, long size)>();
+            await foreach (var item in provider(session.CancellationToken))
+            {
+                if (item.Type == DiscoveredItemType.File) // только файлы
+                {
+                    discoveredList.Add((item.Source, item.Destination, item.FileSize));
+                }
+            }
 
-        public void Dispose()
-        {
-            _progressSubject.OnCompleted();
-            _progressSubject.Dispose();
+            // Передаём весь список в репортер
+            if (session.FileReporter is ICopyReporter concreteReporter)
+                concreteReporter.PrepareFileList(discoveredList);
+
+            // Теперь запускаем фактическое копирование
+            await _executor.ExecuteAsync(provider, context, options, session);
         }
     }
 }

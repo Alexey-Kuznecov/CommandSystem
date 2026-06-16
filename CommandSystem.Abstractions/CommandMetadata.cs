@@ -1,23 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
+using System.Xml.Linq;
 
 namespace CommandSystem.Abstractions
 {
     public class CommandMetadata
     {
-        public string? Name { get; set; } = string.Empty;
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string? Category { get; set; }
-        public string? IconPath { get; set; }
+        public List<Type> ContextTypes { get; set; } = new();
+        public string? IconKey { get; set; }
         public string? Hotkey { get; set; }
         public bool SupportsUndo { get; set; } = false;
 
-        public CommandMetadata(string name, string description)
+        public CommandMetadata(string id, string description)
         {
-            Name = name;
+            Id = id;
+            Name = id;
             Description = description;
         }
     }

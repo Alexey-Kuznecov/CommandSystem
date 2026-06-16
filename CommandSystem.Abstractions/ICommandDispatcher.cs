@@ -1,4 +1,6 @@
 ﻿
+using System.Windows.Input;
+
 namespace CommandSystem.Abstractions;
 public interface ICommandDispatcher
 {
@@ -6,4 +8,7 @@ public interface ICommandDispatcher
     Task DispatchAsync(CommandMetadata metadata, CommandContext context, CancellationToken cancellationToken = default);
     Task DispatchAsync(string commandName, CommandContext context, CancellationToken cancellationToken = default);
     Task DispatchAsync<T>(CommandMetadata metadata, T parameter, CommandContext context, CancellationToken cancellationToken = default);
+
+    public IRegisteredCommand? Get(string commandName);
+    public IReadOnlyCollection<IRegisteredCommand> GetAll();
 }

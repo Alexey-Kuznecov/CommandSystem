@@ -21,12 +21,22 @@ namespace UnityCommander.Copying.Strategies
             CopySessionService sessionService)
         {
             using var semaphore = new SemaphoreSlim(options.MaxConсurrentTasks);
+
+            var worker = new FileCopyWorker(context, sessionService, options);
+
             var tasks = items.Select(async item =>
             {
                 await semaphore.WaitAsync(sessionService.CancellationToken);
-                try { await FileCopyWorker.CopyOneAsync(item, context, options, sessionService); }
-                finally { semaphore.Release(); }
+                try
+                {
+                    await worker.CopyOneAsync(item);
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
             });
+
             await Task.WhenAll(tasks);
         }
     }

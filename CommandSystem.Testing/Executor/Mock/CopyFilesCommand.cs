@@ -3,7 +3,7 @@ using CommandSystem.Abstractions;
 
 namespace CommandSystem.Testing.Executor.Mock
 {
-    public class CopyFilesCommand : IUndoableAsyncCommand
+    public class CopyFilesCommand // : IUndoableAsyncCommand
     {
         private readonly string _sourcePath;
         private readonly string _destinationPath;

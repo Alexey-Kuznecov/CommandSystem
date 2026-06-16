@@ -17,8 +17,9 @@ namespace UnityCommander.Copying.Strategies
             CopyOptions options,
             CopySessionService sessionService)
         {
+            var worker = new FileCopyWorker(context, sessionService, options);
             foreach (var item in items)
-                await FileCopyWorker.CopyOneAsync(item, context, options, sessionService);
+                await worker.CopyOneAsync(item);
         }
     }
 }

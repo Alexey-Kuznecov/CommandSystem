@@ -5,11 +5,13 @@ namespace CommandSystem.Abstractions
 {
     public class CommandContext
     {
+        private readonly Dictionary<string, object> _data = new();
         public string? Name { get; }
         public object? Parameter { get; }
         public IServiceProvider? Services { get; }
         public CancellationToken CancellationToken { get; }
         public object? Result { get; set; }
+        public bool SuppressHistory { get; set; }
 
         public CommandContext(string? name, IServiceProvider services, object? parameter = null, CancellationToken cancellationToken = default)
         {
@@ -24,6 +26,18 @@ namespace CommandSystem.Abstractions
             Name = name;
             Parameter = parameter;
             CancellationToken = cancellationToken;
+        }
+
+        public void Set<T>(T value)
+        {
+            
+        }
+
+        public T? Get<T>(string key, string dd)
+        {
+            return _data.TryGetValue(key, out var val)
+                ? (T)val
+                : default;
         }
 
         public T GetService<T>() where T : notnull

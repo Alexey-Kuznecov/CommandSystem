@@ -13,12 +13,13 @@ namespace Svetokop.Services
         private readonly Dictionary<string, (long lastBytes, DateTime lastTime)> _fileSpeedData = new();
 
         private int _progressCounter;
-        private long _totalBytes;
         private long _bytesCopied;
         private DateTime _startTime;
-        private DateTime _endTime;
         private readonly ObservableCollection<CopyLogEntry> _entries = new();
         private readonly ReadOnlyObservableCollection<CopyLogEntry> _readonlyEntries;
+
+        public event Action? FilesChanged;
+
         public ReadOnlyObservableCollection<CopyLogEntry> Entries => _readonlyEntries;
 
         public CopyLogReporter()
@@ -127,31 +128,6 @@ namespace Svetokop.Services
             }
         }
 
-        public void OnFileCompleted(CopySession session, string filePath, DateTime startTime, DateTime endTime, bool success)
-        {
-            var finishTime = (endTime != default ? endTime : DateTime.Now);
-            var elapsed = finishTime - startTime;
-
-            // показываем миллисекунды для маленьких файлов
-            string duration = elapsed.TotalSeconds < 1
-                ? $"{elapsed.TotalMilliseconds:F0} ms"
-                : elapsed.ToString(@"hh\:mm\:ss");
-
-            string fileName = Path.GetFileName(filePath);
-
-            if (success)
-            {
-                AddEntryInternal(session, CopyLogType.FileCompleted,
-                    $"✅ Completed | File: {fileName} | Duration: {duration}");
-            }
-            else
-            {
-                AddEntryInternal(session, CopyLogType.FileCompleted,
-                    $"⚠️ Failed | File: {fileName} | Duration: {duration}",
-                    verboseOnly: true);
-            }
-        }
-
         public void OnSessionPaused(CopySession session)
         {
             var totalBytes = session.TotalBytes;
@@ -194,6 +170,21 @@ namespace Svetokop.Services
         public void OnFileCategorized(CopySession session, string source, string category)
         {
             //throw new NotImplementedException();
+        }
+
+        public void PrepareFileList(IEnumerable<(string source, string destination, long size)> files)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void OnFileProgress(string source, long bytesCopied)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void OnFileCompleted(string source, bool success)
+        {
+            throw new NotImplementedException();
         }
 
         private static class Messages

@@ -1,15 +1,14 @@
 ﻿
 using CommandSystem.Abstractions;
-using CommandSystem.Gui.Core;
 using CommandSystem.Infrastructure.Execution;
 
 namespace CommandSystem.Gui.Integraion
 {
-    public class GuiCommandRegistrar : ICommandRegister
+    public class GuiCommandRegister : ICommandRegister
     {
         private readonly ICommandDispatcher _dispatcher;
 
-        public GuiCommandRegistrar(ICommandDispatcher dispatcher)
+        public GuiCommandRegister(ICommandDispatcher dispatcher)
         {
             _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
         }
@@ -22,7 +21,15 @@ namespace CommandSystem.Gui.Integraion
             }
         }
 
-        public void Register(CommandMetadata metadata, Func<CommandContext, Task> executeAsync)
+        public void Register(CommandMetadata metadata, Func<CommandContext, Task> execute)
+        {
+            if (_dispatcher is CommandDispatcher dispatcher)
+            {
+                dispatcher.Register(metadata, execute);
+            }
+        }
+
+        public void Register(CommandMetadata metadata, Func<CommandContext, Task<UndoToken>> executeAsync)
         {
             if (_dispatcher is CommandDispatcher dispatcher)
             {

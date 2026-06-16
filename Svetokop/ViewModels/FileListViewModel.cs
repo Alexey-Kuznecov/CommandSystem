@@ -1,6 +1,8 @@
 ﻿using CommandSystem.Gui.MVVM;
+using Svetokop.Services;
 using System.Collections.ObjectModel;
-using System.Windows;
+using System.ComponentModel;
+using System.Windows.Data;
 using System.Windows.Threading;
 using UnityCommander.Copying.Reporting;
 using UnityCommander.Copying.Sessions;
@@ -9,69 +11,43 @@ namespace Svetokop.ViewModels
 {
     public class FileListViewModel : ObservableObject
     {
-        private readonly Services.CopyFileReporter? _fileReporter;
+        private readonly CopyFileReporter _fileReporter;
         private readonly ObservableCollection<FileCopyItem> _filteredFiles = new();
-        public ReadOnlyObservableCollection<FileCopyItem> FilteredFiles { get; }
-
-        private readonly DispatcherTimer _uiTimer;
+        public ObservableCollection<FileCopyItem> FilteredFiles { get; set; }
 
         private string _selectedFileFilter = "Все файлы";
-        public string SelectedFileFilter
-        {
-            get => _selectedFileFilter;
-            set
-            {
-                if (SetProperty(ref _selectedFileFilter, value))
-                    RefreshFilter();
-            }
-        }
+        public string SelectedFileFilter { get => _selectedFileFilter; set { SetProperty(ref _selectedFileFilter, value); RefreshFilter(); } }
 
         private string _fileSearchText = string.Empty;
-        public string FileSearchText
+        public string FileSearchText { get => _fileSearchText; set { SetProperty(ref _fileSearchText, value); RefreshFilter(); } }
+
+        private bool _pendingRefresh = false;
+        private readonly DispatcherTimer _refreshTimer;
+
+        public FileListViewModel(CopyFileReporter reporter)
         {
-            get => _fileSearchText;
-            set
-            {
-                if (SetProperty(ref _fileSearchText, value))
-                    RefreshFilter();
-            }
-        }
+            //_fileReporter = reporter;
+            //_fileReporter.FilesChanged += () => _pendingRefresh = true;
 
-        public FileListViewModel(ICopyReporter fileReporter)
-        {
-            FilteredFiles = new ReadOnlyObservableCollection<FileCopyItem>(_filteredFiles);
+            //FilteredFiles = new ObservableCollection<FileCopyItem>(_filteredFiles);
 
-            if (fileReporter is Services.CopyFileReporter reporter)
-            {
-                _fileReporter = reporter;
-            }
-
-            // Таймер обновления UI
-            _uiTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(300)
-            };
-            _uiTimer.Tick += (s, e) => RefreshFilter();
-            _uiTimer.Start();
+            //_refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1) };
+            //_refreshTimer.Tick += (s, e) => RefreshFilter();
+            //_refreshTimer.Start();
         }
 
         private void RefreshFilter()
         {
-            if (_fileReporter == null) return;
+            //if (!_pendingRefresh) return;
+            //_pendingRefresh = false;
 
-            var files = _fileReporter.Files;
-            if (files == null) return;
+            //_filteredFiles.Clear();
 
-            // Пересобираем список фильтрованных файлов
-            _filteredFiles.Clear();
-            foreach (var item in files)
-            {
-                if (PassesFilter(item))
-                {
-                    item.UpdateDisplayValues(); // обновляем текстовые поля
-                    _filteredFiles.Add(item);
-                }
-            }
+            //FilteredFiles = _fileReporter.Files;
+            //foreach (var item in _fileReporter.Files)
+            //{
+            //    if (PassesFilter(item)) _filteredFiles.Add(item);
+            //}
         }
 
         private bool PassesFilter(FileCopyItem item)
@@ -86,11 +62,12 @@ namespace Svetokop.ViewModels
             if (!string.IsNullOrWhiteSpace(FileSearchText))
             {
                 var s = FileSearchText.Trim();
-                if (!(item.Source?.Contains(s, StringComparison.CurrentCultureIgnoreCase) == true ||
-                      item.Destination?.Contains(s, StringComparison.CurrentCultureIgnoreCase) == true))
+                if (!(item.Source.Contains(s, StringComparison.CurrentCultureIgnoreCase) ||
+                      item.Destination.Contains(s, StringComparison.CurrentCultureIgnoreCase)))
                     return false;
             }
             return true;
         }
     }
+
 }

@@ -21,70 +21,58 @@ namespace UnityCommander.Copying.Sessions
         Cancelled      // Отменён пользователем или системой
     }
 
-    public class FileCopyItem
+    public class FileCopyItem : INotifyPropertyChanged
     {
-        public string Source { get; set; }
+        public string Source { get; }
+        public string Destination { get; }
 
-        public string Destination { get; set; }
+        private long _size;
+        public long Size { get => _size; set { _size = value; OnPropertyChanged(); UpdateDisplayValues(); } }
 
-        public long Size { get; set; }
+        private long _bytesCopied;
+        public long BytesCopied
+        {
+            get => _bytesCopied;
+            set { _bytesCopied = value; OnPropertyChanged(); UpdateDisplayValues(); }
+        }
 
-        public long BytesCopied { get; set; }
+        private int _progress;
+        public int Progress { get => _progress; set { _progress = value; OnPropertyChanged(); } }
+
+        private FileCopyStatus _status;
+        public FileCopyStatus Status { get => _status; set { _status = value; OnPropertyChanged(); } }
+
+        private string _bytesCopiedText = string.Empty;
+        public string BytesCopiedText { get => _bytesCopiedText; private set { _bytesCopiedText = value; OnPropertyChanged(); } }
+
+        private string _fileSizeText = string.Empty;
+        public string FileSizeText { get => _fileSizeText; private set { _fileSizeText = value; OnPropertyChanged(); } }
+
+        public string FileName { get; }
 
         public DateTime StartTime { get; set; }
-
         public DateTime EndTime { get; set; }
 
-        public FileCopyStatus Status { get; set; }
-
-        public string FileName { get; set; }
-
-        public string FileSizeText { get; set; } = string.Empty;
-
-
-        public string BytesCopiedText { get; set; } = string.Empty;
-
-
-        public string ProgressText { get; set; } = string.Empty;
-
-
-        public int Progress { get; set; }
-
-        public FileCopyItem(string source, string destination)
+        public FileCopyItem(string source, string destination, long size)
         {
-            Source = source ?? string.Empty;
-            Destination = destination ?? string.Empty;
+            Source = source;
+            Destination = destination;
             FileName = Path.GetFileName(source) ?? source;
-            try
-            {
-                Size = new FileInfo(source).Length;
-            }
-            catch
-            {
-                Size = 0L;
-            }
-
+            Size = size;
             Status = FileCopyStatus.Pending;
-            BytesCopied = 0L;
+            BytesCopied = 0;
             UpdateDisplayValues();
         }
 
         public void UpdateDisplayValues()
         {
-            if (Size > 0)
-            {
-                Progress = (int)(BytesCopied * 100 / Size);
-                Progress = Math.Clamp(Progress, 0, 100);
-                ProgressText = $"{Progress}%";
-            }
-            else
-            {
-                Progress = ((BytesCopied > 0) ? 100 : 0);
-                ProgressText = $"{Progress}%";
-            }
-
-            FileSizeText = ((Size >= 1024) ? $"{(double)Size / 1024.0 / 1024.0:F1} МБ" : $"{Size} байт");
-            BytesCopiedText = ((BytesCopied >= 1024) ? $"{(double)BytesCopied / 1024.0 / 1024.0:F1} МБ" : $"{BytesCopied} байт");
+            Progress = Size > 0 ? (int)Math.Round((double)BytesCopied / Size * 100) : (BytesCopied > 0 ? 100 : 0);
+            FileSizeText = Size >= 1024 ? $"{(double)Size / 1024 / 1024:F1} МБ" : $"{Size} байт";
+            BytesCopiedText = BytesCopied >= 1024 ? $"{(double)BytesCopied / 1024 / 1024:F1} МБ" : $"{BytesCopied} байт";
         }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }

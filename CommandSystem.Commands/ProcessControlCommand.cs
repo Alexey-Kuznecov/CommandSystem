@@ -1,12 +1,9 @@
 ﻿
 using CommandSystem.Commands.Helper;
-using CommandSystem.Commands.Performance;
 using CommandSystem.Commands.UtilProcess;
 using CommandSystem.Console.Core;
 using CommandSystem.Console.Integration;
 using System.Diagnostics;
-using System.Threading;
-using UnityCommander.Native;
 
 namespace CommandSystem.Commands
 {

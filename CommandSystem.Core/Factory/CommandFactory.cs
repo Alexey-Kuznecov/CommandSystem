@@ -9,57 +9,58 @@ namespace CommandSystem.Core.Factory
     {
         public ICommand Create(CommandMetadata meta, Action<CommandContext> handler)
         {
-            var baseCommand = new DelegateCommand(meta.Name, meta.Description, handler);
-
-            ICommand result = baseCommand;
-
-            if (meta.SupportsUndo)
-                result = new UndoableCommandDecorator(result);
+            ICommand cmd = new DelegateCommand(meta.Id, meta.Description, handler);
 
             if (!string.IsNullOrEmpty(meta.Hotkey))
-                result = new HotkeyBindableCommandDecorator(result, meta.Hotkey);
+                cmd = new HotkeyBindableCommandDecorator(cmd, meta.Hotkey);
 
-            if (!string.IsNullOrEmpty(meta.IconPath))
-                result = new IconCommandDecorator(result, meta.IconPath);
+            if (!string.IsNullOrEmpty(meta.IconKey))
+                cmd = new IconCommandDecorator(cmd, meta.IconKey);
 
-            return result;
+            return cmd;
         }
 
         public IAsyncCommand CreateAsync(
             CommandMetadata meta,
-            Func<CommandContext, Task> execute)
+            Func<CommandContext, Task<UndoToken>> execute)
         {
-            var baseCommand = new AsyncDelegateCommand(meta.Name, meta.Description, execute);
-            IAsyncCommand result = baseCommand;
+            IAsyncCommand cmd = new AsyncDelegateCommand(meta.Id, meta.Description, execute);
 
-            // Если поддержка отмены (Undo) нужна
-            if (meta.SupportsUndo)
-                result = new UndoableAsyncCommandDecorator(result);
+            if (!string.IsNullOrEmpty(meta.Hotkey) || !string.IsNullOrEmpty(meta.IconKey))
+                cmd = new CommandMetadataDecorator(cmd, meta.IconKey, meta.Hotkey);
 
-            // Добавление метаданных (иконка, хоткей)
-            if (!string.IsNullOrEmpty(meta.IconPath) || !string.IsNullOrEmpty(meta.Hotkey))
-                result = new CommandMetadataDecorator(result, meta.IconPath, meta.Hotkey);
+            return cmd;
+        }
 
-            return result;
+        public IAsyncCommand CreateAsync(
+             CommandMetadata meta,
+             Func<CommandContext, Task> execute)
+        {
+            IAsyncCommand cmd =
+                new AsyncDelegateCommand(meta.Id, meta.Description, execute);
+
+            if (!string.IsNullOrEmpty(meta.Hotkey) ||
+                !string.IsNullOrEmpty(meta.IconKey))
+            {
+                cmd = new CommandMetadataDecorator(
+                    cmd,
+                    meta.IconKey,
+                    meta.Hotkey);
+            }
+
+            return cmd;
         }
 
         public IAsyncCommand<T> CreateAsync<T>(
             CommandMetadata meta,
             Func<T, CommandContext, Task> execute)
         {
-            // 1. Базовая асинхронная команда с параметром
-            var baseCommand = new AsyncDelegateCommand<T>(meta.Name, meta.Description, execute);
-            IAsyncCommand<T> result = baseCommand;
+            IAsyncCommand<T> cmd = new AsyncDelegateCommand<T>(meta.Id, meta.Description, execute);
 
-            // 2. Добавляем поддержку Undo, если нужно
-            if (meta.SupportsUndo)
-                result = new UndoableAsyncCommandDecorator<T>(result);
+            if (!string.IsNullOrEmpty(meta.Hotkey) || !string.IsNullOrEmpty(meta.IconKey))
+                cmd = new CommandMetadataDecorator<T>(cmd, meta.IconKey, meta.Hotkey);
 
-            // 3. Декорируем метаданными (иконка, хоткей)
-            if (!string.IsNullOrEmpty(meta.IconPath) || !string.IsNullOrEmpty(meta.Hotkey))
-                result = new CommandMetadataDecorator<T>(result, meta.IconPath, meta.Hotkey);
-
-            return result;
+            return cmd;
         }
     }
 }

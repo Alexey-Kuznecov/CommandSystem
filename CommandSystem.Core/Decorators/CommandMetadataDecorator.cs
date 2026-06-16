@@ -26,7 +26,7 @@ namespace CommandSystem.Core.Decorators
 
         public bool CanExecute(CommandContext context) => _inner.CanExecute(context);
 
-        public Task ExecuteAsync(CommandContext context) => _inner.ExecuteAsync(context);
+        public Task<UndoToken?> ExecuteAsync(CommandContext context) => _inner.ExecuteAsync(context);
 
         public Task ExecuteAsync(CommandContext context, CancellationToken cancellationToken) => _inner.ExecuteAsync(context, cancellationToken);
     }

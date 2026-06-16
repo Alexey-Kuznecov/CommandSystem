@@ -1,25 +1,23 @@
 ﻿
 using CommandSystem.Abstractions;
+using CommandSystem.Core.UndoRedo;
 
 namespace CommandSystem.Core.Decorators
 {
-    public class UndoableAsyncCommandDecorator<T> : IUndoableAsyncCommand<T>
+    public class UndoableAsyncCommandDecorator<T> : IAsyncCommand<T>
     {
         private readonly IAsyncCommand<T> _inner;
-        private readonly Func<CommandContext, Task>? _undoHandler;
-        private readonly Func<CommandContext, bool>? _canUndoHandler;
+        private readonly IHistoryManager _history;
 
         public string Name => _inner.Name;
         public string Description => _inner.Description;
 
         public UndoableAsyncCommandDecorator(
             IAsyncCommand<T> inner,
-            Func<CommandContext, Task>? undoHandler = null,
-            Func<CommandContext, bool>? canUndoHandler = null)
+            IHistoryManager history)
         {
             _inner = inner ?? throw new ArgumentNullException(nameof(inner));
-            _undoHandler = undoHandler;
-            _canUndoHandler = canUndoHandler;
+            _history = history ?? throw new ArgumentNullException(nameof(history));
         }
 
         public bool CanExecute(T parameter, CommandContext context)
@@ -27,22 +25,22 @@ namespace CommandSystem.Core.Decorators
             return _inner.CanExecute(parameter, context);
         }
 
-        public Task ExecuteAsync(T parameter, CommandContext context, CancellationToken cancellationToken)
+        public async Task ExecuteAsync(T parameter, CommandContext context, CancellationToken cancellationToken)
         {
-            return _inner.ExecuteAsync(parameter, context, cancellationToken);
-        }
+            // 💥 ВАЖНО: пытаемся получить UndoToken
 
-        public bool CanUndo(CommandContext context)
-        {
-            return _canUndoHandler?.Invoke(context) ?? false;
-        }
+            if (_inner is IAsyncCommandWithResult<T> withResult)
+            {
+                var token = await withResult.ExecuteWithResultAsync(parameter, context, cancellationToken);
 
-        public Task UndoAsync(CommandContext context)
-        {
-            if (_undoHandler is not null)
-                return _undoHandler(context);
-
-            return Task.CompletedTask;
+                if (token != null)
+                    _history.Push(token);
+            }
+            else
+            {
+                // обычная команда без undo
+                await _inner.ExecuteAsync(parameter, context, cancellationToken);
+            }
         }
     }
 }
