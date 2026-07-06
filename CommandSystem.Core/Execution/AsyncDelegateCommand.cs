@@ -16,10 +16,12 @@ namespace CommandSystem.Core.Execution
         public AsyncDelegateCommand(
             string name,
             string description,
-            Func<CommandContext, Task> execute,
+            Func<CommandContext, Task>? execute,
+            Func<CommandContext, Task<UndoToken>>? executeUndo = null,
             Func<CommandContext, bool>? canExecute = null)
         {
             _execute = execute;
+            _executeUndo = executeUndo;
             _canExecute = canExecute;
             Name = name;
             Description = description;

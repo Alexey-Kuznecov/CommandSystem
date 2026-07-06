@@ -30,7 +30,8 @@ namespace CommandSystem.Gui.Integraion
             CommandContext? context = null,
             CancellationToken cancellationToken = default)
         {
-            var ctx = new CommandContext(commandName, _services, parameter, cancellationToken);
+            var ctx = context ?? new CommandContext(commandName, _services, parameter, cancellationToken);
+
             return _dispatcher.DispatchAsync(commandName, ctx, cancellationToken);
         }
 

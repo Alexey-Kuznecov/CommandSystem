@@ -6,31 +6,48 @@ namespace CommandSystem.Abstractions
     public class CommandContext
     {
         private readonly Dictionary<string, object> _data = new();
-        public string? Name { get; }
-        public object? Parameter { get; }
-        public IServiceProvider? Services { get; }
-        public CancellationToken CancellationToken { get; }
+        public string? Name { get; init; }
+
+        public object? Parameter { get; init; }
+
+        public object? Context { get; init; }
+
+        public IServiceProvider? Services { get; init; }
+
+        public CancellationToken CancellationToken { get; init; }
+        
         public object? Result { get; set; }
+
         public bool SuppressHistory { get; set; }
 
-        public CommandContext(string? name, IServiceProvider services, object? parameter = null, CancellationToken cancellationToken = default)
+        public CommandContext(
+            string? name, 
+            IServiceProvider services, 
+            object? parameter = null, 
+            object? context = null, 
+            CancellationToken cancellationToken = default)
         {
             Name = name;
             Services = services;
             Parameter = parameter;
             CancellationToken = cancellationToken;
+            Context = context;
         }
 
-        public CommandContext(string? name = null, object? parameter = null, CancellationToken cancellationToken = default)
+        public CommandContext(
+            string? name = null,
+            object? context = null,
+            object? parameter = null,
+            CancellationToken cancellationToken = default)
         {
             Name = name;
             Parameter = parameter;
             CancellationToken = cancellationToken;
+            Context = context;
         }
 
         public void Set<T>(T value)
         {
-            
         }
 
         public T? Get<T>(string key, string dd)
@@ -47,10 +64,6 @@ namespace CommandSystem.Abstractions
             return default!;
         }
 
-        /// <summary>
-        /// Бросает исключение, если токен отменён.
-        /// Удобно вызывать в командах.
-        /// </summary>
         public void ThrowIfCancellationRequested()
         {
             CancellationToken.ThrowIfCancellationRequested();

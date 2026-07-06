@@ -24,7 +24,7 @@ namespace CommandSystem.Core.Factory
             CommandMetadata meta,
             Func<CommandContext, Task<UndoToken>> execute)
         {
-            IAsyncCommand cmd = new AsyncDelegateCommand(meta.Id, meta.Description, execute);
+            IAsyncCommand cmd = new AsyncDelegateCommand(meta.Id, meta.Description, null, execute);
 
             if (!string.IsNullOrEmpty(meta.Hotkey) || !string.IsNullOrEmpty(meta.IconKey))
                 cmd = new CommandMetadataDecorator(cmd, meta.IconKey, meta.Hotkey);
