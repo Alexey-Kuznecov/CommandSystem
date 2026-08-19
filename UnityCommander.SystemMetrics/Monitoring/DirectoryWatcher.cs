@@ -16,6 +16,14 @@ namespace UnityCommander.SystemMetrics.Monitoring
         {
             Stop();
 
+            _entries.Clear();
+
+            foreach (var file in Directory.EnumerateFiles(path))
+                _entries[file] = FileSystemEntryType.File;
+
+            foreach (var directory in Directory.EnumerateDirectories(path))
+                _entries[directory] = FileSystemEntryType.Directory;
+
             _watcher = new FileSystemWatcher(path)
             {
                 IncludeSubdirectories = false,
@@ -96,12 +104,15 @@ namespace UnityCommander.SystemMetrics.Monitoring
 
         private FileSystemEntryType DefineEntryType(string path)
         {
-            if (!File.Exists(path) && !Directory.Exists(path))
+            if (File.Exists(path))
+                return FileSystemEntryType.File;
+
+            if (Directory.Exists(path))
                 return FileSystemEntryType.Directory;
 
-            return (File.GetAttributes(path) & FileAttributes.Directory) != 0
-                ? FileSystemEntryType.Directory
-                : FileSystemEntryType.File;
+            throw new FileNotFoundException(
+                $"Cannot determine filesystem entry type.",
+                path);
         }
     }
 }
