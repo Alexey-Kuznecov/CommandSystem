@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Timers;
+﻿
 using Timer = System.Timers.Timer;
 
 namespace UnityCommander.SystemMetrics
