@@ -5,10 +5,20 @@ namespace CommandSystem.Infrastructure.Lifecycle
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using UnityCommander.Logging.Contracts;
+    using UnityCommander.Logging.Core;
+    using UnityCommander.Logging.Infrastructure;
 
     public class CommandRegistry : ICommandRegistry
     {
         private readonly Dictionary<string, IRegisteredCommand> _commands = new();
+
+        private readonly ILogger? _logger;
+
+        public CommandRegistry(LoggerCreator logger)
+        {
+            _logger = logger.For<CommandRegistry>(LogScope.Runtime);
+        }
 
         public void Register(IRegisteredCommand command)
         {
@@ -53,8 +63,11 @@ namespace CommandSystem.Infrastructure.Lifecycle
         public IRegisteredCommand? Get(string commandName)
         {
             if (string.IsNullOrWhiteSpace(commandName))
-                throw new ArgumentException("Command name cannot be null or whitespace.", nameof(commandName));
-
+            {
+                _logger?.Warning("Command name cannot be null or whitespace.");
+                return null;
+            }
+                
             _commands.TryGetValue(commandName, out var command);
             return command;
         }

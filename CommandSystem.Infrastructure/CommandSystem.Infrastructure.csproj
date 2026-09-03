@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\UnityCommander\UnityCommander\UnityCommander.Logging\UnityCommander.Logging.csproj" />
     <ProjectReference Include="..\CommandSystem.Core\CommandSystem.Core.csproj" />
   </ItemGroup>
 

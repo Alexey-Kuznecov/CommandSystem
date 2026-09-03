@@ -1,10 +1,5 @@
-﻿using AlexeyKuznetsov.Logger;
-using CommandSystem.Console.Core;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
+using UnityCommander.Logging.Contracts;
 
 namespace UnityCommander.Copying.Handler
 {
@@ -19,7 +14,7 @@ namespace UnityCommander.Copying.Handler
 
         public bool HandleError(FileCopyErrorContext context)
         {
-            _logger.LogInfo($"Пропущен файл: '{context.SourcePath}'\nПричина: {context.Exception.Message}");
+            _logger.Info($"Пропущен файл: '{context.SourcePath}'\nПричина: {context.Exception.Message}");
             return true; // продолжать
         }
     }

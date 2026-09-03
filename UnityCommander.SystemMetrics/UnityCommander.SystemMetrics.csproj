@@ -12,10 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\AlexeyKuznetsov\AlexeyKuznetsov\AlexeyKuznetsov.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Folder Include="IO\" />
   </ItemGroup>
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">

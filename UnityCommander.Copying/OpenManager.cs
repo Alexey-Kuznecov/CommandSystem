@@ -1,4 +1,4 @@
-﻿using AlexeyKuznetsov.Logger;
+﻿
 using System.Reactive.Subjects;
 using UnityCommander.Copying.Category;
 using UnityCommander.Copying.Core;
@@ -6,6 +6,7 @@ using UnityCommander.Copying.Progress;
 using UnityCommander.Copying.Reporting;
 using UnityCommander.Copying.Sessions;
 using UnityCommander.Copying.Settings;
+using UnityCommander.Logging.Contracts;
 
 namespace UnityCommander.Copying
 {

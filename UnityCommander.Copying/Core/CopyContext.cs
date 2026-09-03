@@ -1,11 +1,9 @@
-﻿using AlexeyKuznetsov.Logger;
-using System;
-using System.Collections.Generic;
-
+﻿
 using UnityCommander.Copying.Category;
 using UnityCommander.Copying.Handler;
 using UnityCommander.Copying.Progress;
 using UnityCommander.Copying.Reporting;
+using UnityCommander.Logging.Contracts;
 
 namespace UnityCommander.Copying.Core
 {

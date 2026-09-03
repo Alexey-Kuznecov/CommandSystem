@@ -1,5 +1,4 @@
 ﻿
-using AlexeyKuznetsov.Helper;
 using CommandSystem.Console.Core;
 using UnityCommander.Copying.Core;
 using UnityCommander.Copying.Progress;

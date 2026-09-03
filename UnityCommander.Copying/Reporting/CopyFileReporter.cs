@@ -1,8 +1,4 @@
 ﻿
-using AlexeyKuznetsov.Helper;
-using System.Collections.ObjectModel;
-using UnityCommander.Copying.Sessions;
-
 namespace UnityCommander.Copying.Reporting
 {
     //public class CopyFileReporter : ICopyReporter

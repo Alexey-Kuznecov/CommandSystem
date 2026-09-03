@@ -1,8 +1,6 @@
 ﻿
-using AlexeyKuznetsov.Logger;
 using CommandSystem.Console.Core;
 using System.Diagnostics;
-using System.Reactive.Concurrency;
 using System.Reactive.Subjects;
 using System.Threading.Channels;
 using UnityCommander.Copying.Category;
@@ -13,6 +11,7 @@ using UnityCommander.Copying.Progress;
 using UnityCommander.Copying.Reporting;
 using UnityCommander.Copying.Sessions;
 using UnityCommander.Copying.Settings;
+using UnityCommander.Logging.Contracts;
 using UnityCommander.SystemMetrics;
 
 namespace UnityCommander.Copying
@@ -34,10 +33,11 @@ namespace UnityCommander.Copying
         private readonly ICopySuccessHandler? _successHandler;
         private readonly ICopyMetricsCollector? _metrics;
         private readonly IConsoleOutput _consoleOutput;
-        private readonly SerilogCopyLogger _copylogger;
         private const long SmallFileThreshold = 64 * 1024; // 64 KB
         private readonly Subject<ProgressInfo> _progressSubject = new();
         private IEnumerable<DiscoveredItem>? _plannedItems;
+        private ILogger _logger;
+
         public IObservable<ProgressInfo> ProgressStream => _progressSubject;
 
         public CopyManager(
@@ -60,7 +60,6 @@ namespace UnityCommander.Copying
             _errorHandler = errorHandler;
             _successHandler = successHandler;
             _metrics = metrics ?? new NullCopyMetricsCollector();
-            _copylogger = new SerilogCopyLogger();
 
             _progressReporter.ProgressChanged += info => _progressSubject.OnNext(info);
         }
@@ -183,7 +182,7 @@ namespace UnityCommander.Copying
                         {
                             session.UpdateFileStatus(item.Source, FileCopyStatus.Failed);
                             _metrics?.OnError(item.Source, ex);
-                            _copylogger.LogCopyError(item.Source, item.Destination, ex);
+                            _logger.Info($"Ошибка копирования файла: '{item.Source}'\nПричина: {ex.Message}");
                         }
                     }
                 }, token)).ToArray();
@@ -264,7 +263,7 @@ namespace UnityCommander.Copying
                 {
                     session.UpdateFileStatus(file.Source, FileCopyStatus.Failed);
                     _metrics?.OnError(file.Source, ex);
-                    _copylogger.LogCopyError(file.Source, Path.Combine(session.CurrentSession.TargetPath, Path.GetFileName(file.Source)), ex);
+                    _logger.Info($"Ошибка копирования файла: '{file.Source}'\nПричина: {ex.Message}");
                 }
 
             }, cancellationToken)).ToArray();

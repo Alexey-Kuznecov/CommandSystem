@@ -1,14 +1,7 @@
-﻿using AlexeyKuznetsov.Logger;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
 using UnityCommander.Copying.Core;
 using UnityCommander.Copying.Sessions;
 using UnityCommander.Copying.Settings;
-using static System.Collections.Specialized.BitVector32;
 
 namespace UnityCommander.Copying.Strategies
 {

@@ -1,9 +1,5 @@
-﻿using AlexeyKuznetsov.Logger;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
+using UnityCommander.Logging.Contracts;
 
 namespace UnityCommander.Copying
 {
@@ -13,7 +9,6 @@ namespace UnityCommander.Copying
 
         public LogHelper()
         {
-            Log = new FileLogger();
         }
     }
 }

@@ -6,13 +6,14 @@ namespace CommandSystem.Abstractions
     public class CommandContext
     {
         private readonly Dictionary<string, object> _data = new();
+        
         public string? Name { get; init; }
 
-        public object? Parameter { get; init; }
+        public object? Parameter { get; set; }
 
         public object? Context { get; init; }
 
-        public IServiceProvider? Services { get; init; }
+        public IServiceProvider? Services { get; set; }
 
         public CancellationToken CancellationToken { get; init; }
         
