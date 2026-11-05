@@ -1,6 +1,4 @@
 ﻿
-using System.Xml.Linq;
-
 namespace CommandSystem.Abstractions
 {
     public class CommandMetadata
